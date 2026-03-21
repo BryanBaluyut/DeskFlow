@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Chat Overview - DeskFlow{% endblock %}
+{% block content %}
+<h1>Chat Dashboard</h1>
+
+<div class="card">
+    <h2>Waiting Sessions</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Customer</th><th>Started</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            {% for session in waiting_sessions %}
+            <tr>
+                <td>{{ session.customer_name|default('Guest') }}</td>
+                <td>{{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else '' }}</td>
+                <td>
+                    <form action="/chat/{{ session.id }}/accept" method="post" style="display:inline">
+                        <button type="submit" class="btn btn-primary">Accept</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">No waiting sessions.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Active Sessions</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Customer</th><th>Agent</th><th>Started</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            {% for session in active_sessions %}
+            <tr>
+                <td>{{ session.customer_name|default('Guest') }}</td>
+                <td>{{ session.agent.display_name if session.agent else '-' }}</td>
+                <td>{{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else '' }}</td>
+                <td><a href="/chat/{{ session.id }}" class="btn">Open</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No active sessions.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

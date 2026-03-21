@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Core Workflows - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Core Workflows</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Object Type</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for w in workflows|default([]) %}
+            <tr>
+                <td>{{ w.name }}</td>
+                <td><span class="badge">{{ w.object_type }}</span></td>
+                <td>
+                    <form method="post" action="/admin/core-workflows/{{ w.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Core Workflow</h2>
+    <form method="post" action="/admin/core-workflows">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Object Type</label>
+            <input type="text" name="object_type" placeholder="e.g. ticket" required>
+        </div>
+        <div class="form-group">
+            <label>Conditions (JSON)</label>
+            <textarea name="conditions" rows="4" placeholder='{"field": "value"}'></textarea>
+        </div>
+        <div class="form-group">
+            <label>Actions (JSON)</label>
+            <textarea name="actions" rows="4" placeholder='{"show": ["field1"], "hide": ["field2"]}'></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Workflow</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Knowledge Base - DeskFlow{% endblock %}
+{% block content %}
+<h1>Knowledge Base</h1>
+<div class="card">
+    <form action="/knowledge-base/search" method="get" class="form-group">
+        <input type="text" name="q" placeholder="Search articles..." value="{{ q|default('') }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+<div class="card">
+    <h2>Categories</h2>
+    <ul class="category-list">
+        {% for category in categories %}
+        <li><a href="/knowledge-base/category/{{ category.id }}">{{ category.name }}</a></li>
+        {% else %}
+        <li>No categories yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% if user and user.role.value in ('agent', 'admin') %}
+<p><a href="/knowledge-base/manage" class="btn btn-primary">Manage KB</a></p>
+{% endif %}
+{% endblock %}

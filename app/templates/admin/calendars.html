@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Calendars - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Calendars</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Timezone</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for c in calendars|default([]) %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.timezone or '' }}</td>
+                <td>
+                    <form method="post" action="/admin/calendars/{{ c.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Calendar</h2>
+    <form method="post" action="/admin/calendars">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Timezone</label>
+            <input type="text" name="timezone" placeholder="e.g. America/New_York">
+        </div>
+        <button type="submit" class="btn btn-primary">Create Calendar</button>
+    </form>
+</div>
+{% endblock %}

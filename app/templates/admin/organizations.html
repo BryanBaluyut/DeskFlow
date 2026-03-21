@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Organizations - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Organizations</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Domain</th><th>Domain Assignment</th><th>Shared</th><th>Note</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for o in organizations|default([]) %}
+            <tr>
+                <td>{{ o.name }}</td>
+                <td>{{ o.domain or '' }}</td>
+                <td>{{ 'Yes' if o.domain_assignment else 'No' }}</td>
+                <td>{{ 'Yes' if o.shared else 'No' }}</td>
+                <td>{{ o.note or '' }}</td>
+                <td>
+                    <form method="post" action="/admin/organizations/{{ o.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Organization</h2>
+    <form method="post" action="/admin/organizations">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Domain</label>
+            <input type="text" name="domain">
+        </div>
+        <div class="form-group">
+            <label><input type="checkbox" name="domain_assignment" value="1"> Domain Assignment</label>
+        </div>
+        <div class="form-group">
+            <label><input type="checkbox" name="shared" value="1"> Shared</label>
+        </div>
+        <div class="form-group">
+            <label>Note</label>
+            <textarea name="note" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Organization</button>
+    </form>
+</div>
+{% endblock %}

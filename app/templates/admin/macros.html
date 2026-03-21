@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Macros - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Macros</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Note</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for m in macros|default([]) %}
+            <tr>
+                <td>{{ m.name }}</td>
+                <td>{{ m.note or '' }}</td>
+                <td>
+                    <form method="post" action="/admin/macros/{{ m.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Macro</h2>
+    <form method="post" action="/admin/macros">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Actions (JSON)</label>
+            <textarea name="actions" rows="4" placeholder='[{"action": "set", "field": "priority", "value": "high"}]'></textarea>
+        </div>
+        <div class="form-group">
+            <label>Note</label>
+            <textarea name="note" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Macro</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Webhooks - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Webhooks</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Endpoint</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for w in webhooks|default([]) %}
+            <tr>
+                <td>{{ w.name }}</td>
+                <td>{{ w.endpoint }}</td>
+                <td>
+                    <form method="post" action="/admin/webhooks/{{ w.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Webhook</h2>
+    <form method="post" action="/admin/webhooks">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Endpoint URL</label>
+            <input type="url" name="endpoint" required>
+        </div>
+        <div class="form-group">
+            <label>Signature Token</label>
+            <input type="text" name="signature_token">
+        </div>
+        <button type="submit" class="btn btn-primary">Create Webhook</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Notifications - DeskFlow{% endblock %}
+{% block content %}
+<h1>Notifications</h1>
+<form action="/notifications/mark-all-read" method="post" style="margin-bottom:1rem;">
+    <button type="submit" class="btn btn-primary">Mark All Read</button>
+</form>
+<div class="card">
+    <ul class="notification-list">
+        {% for notif in all_notifications %}
+        <li class="{{ 'unseen' if not notif.seen else 'seen' }}">
+            <a href="{{ notif.link|default('#') }}">{{ notif.message }}</a>
+            <span style="color:#888;font-size:0.875rem;margin-left:0.5rem;">{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else '' }}</span>
+        </li>
+        {% else %}
+        <li>No notifications.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Time Accounting - DeskFlow{% endblock %}
+{% block content %}
+<h1>Time Accounting</h1>
+
+<div class="card">
+    <form method="get" class="form-group" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <label for="date_from">From:</label>
+        <input type="date" id="date_from" name="date_from" value="{{ date_from|default('') }}">
+        <label for="date_to">To:</label>
+        <input type="date" id="date_to" name="date_to" value="{{ date_to|default('') }}">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="/reports/time-accounting/export?date_from={{ date_from|default('') }}&date_to={{ date_to|default('') }}" class="btn">Export CSV</a>
+    </form>
+</div>
+
+{% if by_type %}
+<div class="card">
+    <h2>By Type</h2>
+    <table class="ticket-table">
+        <thead><tr><th>Type</th><th>Hours</th></tr></thead>
+        <tbody>
+            {% for type_name, hours in by_type.items() %}
+            <tr><td>{{ type_name }}</td><td>{{ hours }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Total: {{ total|default(0) }} hours</h2>
+</div>
+
+<div class="card">
+    <h2>Time Entries</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Date</th><th>Ticket</th><th>Agent</th><th>Type</th><th>Hours</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td>{{ entry.date.strftime('%Y-%m-%d') if entry.date else '' }}</td>
+                <td><a href="/tickets/{{ entry.ticket_id }}">{{ entry.ticket_number|default(entry.ticket_id) }}</a></td>
+                <td>{{ entry.agent_name|default('-') }}</td>
+                <td>{{ entry.time_type|default('-') }}</td>
+                <td>{{ entry.hours }}</td>
+                <td>{{ entry.note|default('') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No time entries found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

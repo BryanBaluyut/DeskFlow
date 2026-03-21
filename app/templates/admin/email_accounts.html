@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Email Accounts - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Email Accounts</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Email</th><th>Group</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for e in email_accounts|default([]) %}
+            <tr>
+                <td>{{ e.name }}</td>
+                <td>{{ e.email_address }}</td>
+                <td>{{ e.group_id or '-' }}</td>
+                <td>
+                    <form method="post" action="/admin/email-accounts/{{ e.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Email Account</h2>
+    <form method="post" action="/admin/email-accounts">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" name="email_address" required>
+        </div>
+        <div class="form-group">
+            <label>Group</label>
+            <select name="group_id">
+                <option value="">-- None --</option>
+                {% for g in groups|default([]) %}
+                <option value="{{ g.id }}">{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <h3>IMAP Settings</h3>
+        <div class="form-group">
+            <label>IMAP Host</label>
+            <input type="text" name="imap_host">
+        </div>
+        <div class="form-group">
+            <label>IMAP Port</label>
+            <input type="number" name="imap_port" value="993">
+        </div>
+        <div class="form-group">
+            <label>IMAP Username</label>
+            <input type="text" name="imap_username">
+        </div>
+        <div class="form-group">
+            <label>IMAP Password</label>
+            <input type="password" name="imap_password">
+        </div>
+        <h3>SMTP Settings</h3>
+        <div class="form-group">
+            <label>SMTP Host</label>
+            <input type="text" name="smtp_host">
+        </div>
+        <div class="form-group">
+            <label>SMTP Port</label>
+            <input type="number" name="smtp_port" value="587">
+        </div>
+        <div class="form-group">
+            <label>SMTP Username</label>
+            <input type="text" name="smtp_username">
+        </div>
+        <div class="form-group">
+            <label>SMTP Password</label>
+            <input type="password" name="smtp_password">
+        </div>
+        <button type="submit" class="btn btn-primary">Create Email Account</button>
+    </form>
+</div>
+{% endblock %}

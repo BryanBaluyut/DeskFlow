@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}New Ticket - DeskFlow{% endblock %}
+{% block content %}
+<h1>Create New Ticket</h1>
+
+{% if ticket_templates %}
+<div class="template-selector">
+    <label>Load template:</label>
+    <select id="template-select" onchange="loadTemplate(this.value)">
+        <option value="">-- Select Template --</option>
+        {% for t in ticket_templates %}
+        <option value="{{ t.id }}" data-subject="{{ t.subject }}" data-body="{{ t.body }}" data-priority="{{ t.priority.value if t.priority else 'medium' }}">{{ t.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+
+<form method="post" action="/tickets/new" class="ticket-form">
+    <div class="form-group">
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" name="subject" required maxlength="500" placeholder="Brief description of the issue">
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority">
+                {% for p in priorities %}
+                <option value="{{ p.value }}" {{ 'selected' if p.value == 'medium' }}>{{ p.value|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if groups %}
+        <div class="form-group">
+            <label for="group_id">Group</label>
+            <select id="group_id" name="group_id">
+                <option value="">-- None --</option>
+                {% for g in groups %}
+                <option value="{{ g.id }}">{{ g.display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="tags">Tags (comma-separated)</label>
+        <input type="text" id="tags" name="tags" placeholder="e.g. network, vpn, urgent">
+    </div>
+
+    <div class="form-group">
+        <label for="body">Description</label>
+        <textarea id="body" name="body" rows="8" placeholder="Provide details about your issue..."></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create Ticket</button>
+</form>
+
+<script>
+function loadTemplate(id) {
+    const opt = document.querySelector(`#template-select option[value="${id}"]`);
+    if (!opt || !id) return;
+    document.getElementById('subject').value = opt.dataset.subject || '';
+    document.getElementById('body').value = opt.dataset.body || '';
+    document.getElementById('priority').value = opt.dataset.priority || 'medium';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Tickets - DeskFlow{% endblock %}
+{% block content %}
+<h1>Tickets</h1>
+
+<div class="filters">
+    <form method="get" class="filter-form">
+        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search tickets...">
+        <select name="status">
+            <option value="">All Statuses</option>
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {{ 'selected' if filter_status == s.value }}>{{ s.value|replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <select name="priority">
+            <option value="">All Priorities</option>
+            {% for p in priorities %}
+            <option value="{{ p.value }}" {{ 'selected' if filter_priority == p.value }}>{{ p.value|title }}</option>
+            {% endfor %}
+        </select>
+        {% if user.role.value != 'customer' %}
+        <select name="assignee">
+            <option value="">All Assignees</option>
+            <option value="me" {{ 'selected' if filter_assignee == 'me' }}>Assigned to Me</option>
+            <option value="unassigned" {{ 'selected' if filter_assignee == 'unassigned' }}>Unassigned</option>
+        </select>
+        <select name="group_id">
+            <option value="">All Groups</option>
+            {% for g in groups %}
+            <option value="{{ g.id }}" {{ 'selected' if filter_group_id == g.id }}>{{ g.display_name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <select name="tag">
+            <option value="">All Tags</option>
+            {% for t in all_tags %}
+            <option value="{{ t.name }}" {{ 'selected' if filter_tag == t.name }}>{{ t.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn">Filter</button>
+    </form>
+</div>
+
+{% if user.role.value != 'customer' %}
+<div class="bulk-actions" id="bulk-actions" style="display:none;">
+    <form method="post" action="/tickets/bulk" id="bulk-form">
+        <input type="hidden" name="ticket_ids" id="bulk-ticket-ids">
+        <select name="action" id="bulk-action">
+            <option value="status">Change Status</option>
+            <option value="priority">Change Priority</option>
+            <option value="close">Close</option>
+        </select>
+        <select name="value" id="bulk-value">
+            {% for s in statuses %}
+            <option value="{{ s.value }}">{{ s.value|replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Apply</button>
+    </form>
+</div>
+{% endif %}
+
+{% include "partials/ticket_table.html" %}
+
+<div class="pagination">
+    {% if page > 1 %}<a href="?page={{ page - 1 }}" class="btn">Previous</a>{% endif %}
+    <span>Page {{ page }}</span>
+    {% if tickets|length == 25 %}<a href="?page={{ page + 1 }}" class="btn">Next</a>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DeskFlow{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand"><a href="/">DeskFlow</a></div>
+        {% if user %}
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/tickets">Tickets</a>
+            <a href="/tickets/new">New Ticket</a>
+            <a href="/knowledge-base/">KB</a>
+            {% if user.role.value in ('agent', 'admin') %}
+            <a href="/chat/">Chat</a>
+            <a href="/reports/">Reports</a>
+            {% endif %}
+            {% if user.role.value == 'admin' %}
+            <a href="/admin/">Admin</a>
+            {% endif %}
+            <a href="/notifications" class="nav-notif" title="Notifications">
+                Notifications
+                {% if notifications|default([])|selectattr('seen', 'equalto', false)|list|length > 0 %}
+                <span class="notif-badge">{{ notifications|selectattr('seen', 'equalto', false)|list|length }}</span>
+                {% endif %}
+            </a>
+            <span class="nav-user">{{ user.display_name }} ({{ user.role.value }})</span>
+            <a href="/portal/">Portal</a>
+            <a href="/auth/logout">Logout</a>
+        </div>
+        {% endif %}
+    </nav>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <script src="/static/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

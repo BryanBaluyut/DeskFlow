@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Schedulers - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Schedulers</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Interval (min)</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for s in schedulers|default([]) %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.interval_minutes }}</td>
+                <td>
+                    <form method="post" action="/admin/schedulers/{{ s.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Scheduler</h2>
+    <form method="post" action="/admin/schedulers">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Interval (minutes)</label>
+            <input type="number" name="interval_minutes" min="1" required>
+        </div>
+        <div class="form-group">
+            <label>Conditions (JSON)</label>
+            <textarea name="conditions" rows="4" placeholder='{"field": "value"}'></textarea>
+        </div>
+        <div class="form-group">
+            <label>Actions (JSON)</label>
+            <textarea name="actions" rows="4" placeholder='[{"action": "set", "field": "state", "value": "closed"}]'></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Scheduler</button>
+    </form>
+</div>
+{% endblock %}

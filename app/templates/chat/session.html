@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Chat - {{ session.customer_name|default('Guest') }} - DeskFlow{% endblock %}
+{% block head %}
+<style>
+    .chat-container { display: flex; flex-direction: column; height: 60vh; }
+    .chat-messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; background: #fafafa; }
+    .chat-msg { margin-bottom: 0.75rem; }
+    .chat-msg .sender { font-weight: bold; font-size: 0.875rem; }
+    .chat-msg .time { color: #888; font-size: 0.75rem; margin-left: 0.5rem; }
+    .chat-msg .text { margin-top: 0.25rem; }
+    .chat-msg.agent .sender { color: #2563eb; }
+    .chat-msg.customer .sender { color: #16a34a; }
+    .chat-input { display: flex; gap: 0.5rem; }
+    .chat-input input { flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; }
+    .chat-input button { padding: 0.75rem 1.5rem; }
+</style>
+{% endblock %}
+{% block content %}
+<p><a href="/chat/">&larr; Back to Chat Overview</a></p>
+<div class="card">
+    <h2>Chat with {{ session.customer_name|default('Guest') }}</h2>
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            {% for msg in messages %}
+            <div class="chat-msg {{ 'agent' if msg.sender_type == 'agent' else 'customer' }}">
+                <span class="sender">{{ msg.sender_name|default(msg.sender_type) }}</span>
+                <span class="time">{{ msg.created_at.strftime('%H:%M') if msg.created_at else '' }}</span>
+                <div class="text">{{ msg.body }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+            <button class="btn btn-primary" id="chatSend">Send</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+    var sessionId = "{{ session.id }}";
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var ws = new WebSocket(proto + '//' + location.host + '/chat/ws/' + sessionId);
+    var messagesDiv = document.getElementById('chatMessages');
+    var input = document.getElementById('chatInput');
+    var sendBtn = document.getElementById('chatSend');
+
+    ws.onmessage = function(e) {
+        var data = JSON.parse(e.data);
+        var div = document.createElement('div');
+        div.className = 'chat-msg ' + (data.sender_type || 'customer');
+        div.innerHTML = '<span class="sender">' + (data.sender_name || data.sender_type || '') + '</span>' +
+            '<span class="time">' + (data.time || '') + '</span>' +
+            '<div class="text">' + data.body + '</div>';
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    };
+
+    function send() {
+        var text = input.value.trim();
+        if (!text) return;
+        ws.send(JSON.stringify({body: text}));
+        input.value = '';
+    }
+
+    sendBtn.addEventListener('click', send);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') send();
+    });
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+})();
+</script>
+{% endblock %}

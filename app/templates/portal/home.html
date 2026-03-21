@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Customer Portal - DeskFlow{% endblock %}
+{% block content %}
+<h1>Welcome, {{ user.display_name }}</h1>
+
+<div class="card">
+    <h2>My Tickets</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>#</th><th>Subject</th><th>Status</th><th>Updated</th></tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td>{{ ticket.number }}</td>
+                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.title }}</a></td>
+                <td><span class="badge">{{ ticket.status }}</span></td>
+                <td>{{ ticket.updated_at.strftime('%Y-%m-%d') if ticket.updated_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No tickets yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="/portal/tickets" class="btn">View All Tickets</a> <a href="/portal/tickets/new" class="btn btn-primary">New Ticket</a></p>
+</div>
+
+<div class="card">
+    <h2>Help Articles</h2>
+    <ul class="article-list">
+        {% for article in featured_articles %}
+        <li><a href="/kb/article/{{ article.id }}">{{ article.title }}</a></li>
+        {% else %}
+        <li>No articles available.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

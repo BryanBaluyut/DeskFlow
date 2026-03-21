@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Overviews - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Overviews</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Link</th><th>Order</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for o in overviews|default([]) %}
+            <tr>
+                <td>{{ o.name }}</td>
+                <td>{{ o.link or '' }}</td>
+                <td>{{ o.order_by or '' }} {{ o.order_direction or '' }}</td>
+                <td>
+                    <form method="post" action="/admin/overviews/{{ o.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Overview</h2>
+    <form method="post" action="/admin/overviews">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Link (slug)</label>
+            <input type="text" name="link" required>
+        </div>
+        <div class="form-group">
+            <label>Conditions (JSON)</label>
+            <textarea name="conditions" rows="3" placeholder='{"state": "open"}'></textarea>
+        </div>
+        <div class="form-group">
+            <label>Order By</label>
+            <input type="text" name="order_by" placeholder="e.g. created_at">
+        </div>
+        <div class="form-group">
+            <label>Order Direction</label>
+            <select name="order_direction">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Columns (JSON array)</label>
+            <textarea name="columns" rows="2" placeholder='["number", "title", "state", "priority"]'></textarea>
+        </div>
+        <div class="form-group">
+            <label>Roles (JSON array)</label>
+            <textarea name="roles" rows="2" placeholder='["admin", "agent"]'></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Overview</button>
+    </form>
+</div>
+{% endblock %}

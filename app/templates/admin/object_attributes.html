@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Object Attributes - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Object Attributes</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Object</th><th>Name</th><th>Display Name</th><th>Type</th><th>Required</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for a in attributes|default([]) %}
+            <tr>
+                <td><span class="badge">{{ a.object_type }}</span></td>
+                <td>{{ a.name }}</td>
+                <td>{{ a.display_name }}</td>
+                <td>{{ a.data_type }}</td>
+                <td>{{ 'Yes' if a.required else 'No' }}</td>
+                <td>
+                    <form method="post" action="/admin/object-attributes/{{ a.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Object Attribute</h2>
+    <form method="post" action="/admin/object-attributes">
+        <div class="form-group">
+            <label>Object Type</label>
+            <select name="object_type" required>
+                <option value="ticket">Ticket</option>
+                <option value="user">User</option>
+                <option value="organization">Organization</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Display Name</label>
+            <input type="text" name="display_name" required>
+        </div>
+        <div class="form-group">
+            <label>Data Type</label>
+            <select name="data_type" required>
+                <option value="text">Text</option>
+                <option value="integer">Integer</option>
+                <option value="boolean">Boolean</option>
+                <option value="select">Select</option>
+                <option value="multiselect">Multi-Select</option>
+                <option value="date">Date</option>
+                <option value="datetime">DateTime</option>
+                <option value="textarea">Textarea</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label><input type="checkbox" name="required" value="1"> Required</label>
+        </div>
+        <div class="form-group">
+            <label>Data Options (JSON)</label>
+            <textarea name="data_options" rows="4" placeholder='{"options": ["Option A", "Option B"]}'></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Attribute</button>
+    </form>
+</div>
+{% endblock %}

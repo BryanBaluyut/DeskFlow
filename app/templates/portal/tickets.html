@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}My Tickets - DeskFlow{% endblock %}
+{% block content %}
+<h1>My Tickets</h1>
+<div class="card">
+    <form method="get" class="form-group" style="display:flex;gap:0.5rem;align-items:center;">
+        <label for="status">Status:</label>
+        <select id="status" name="status" onchange="this.form.submit()">
+            <option value="">All</option>
+            {% for s in ['open', 'pending', 'closed'] %}
+            <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>#</th><th>Subject</th><th>Status</th><th>Priority</th><th>Updated</th></tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td>{{ ticket.number }}</td>
+                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.title }}</a></td>
+                <td><span class="badge">{{ ticket.status }}</span></td>
+                <td>{{ ticket.priority|default('-') }}</td>
+                <td>{{ ticket.updated_at.strftime('%Y-%m-%d') if ticket.updated_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No tickets found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p><a href="/portal/tickets/new" class="btn btn-primary">New Ticket</a></p>
+{% endblock %}

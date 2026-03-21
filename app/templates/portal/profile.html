@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}My Profile - DeskFlow{% endblock %}
+{% block content %}
+<h1>My Profile</h1>
+<div class="card">
+    <form action="/portal/profile" method="post">
+        <div class="form-group">
+            <label for="display_name">Display Name</label>
+            <input type="text" id="display_name" name="display_name" value="{{ user.display_name|default('') }}">
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone" value="{{ user.phone|default('') }}">
+        </div>
+        <div class="form-group">
+            <label for="locale">Locale</label>
+            <input type="text" id="locale" name="locale" value="{{ user.locale|default('en') }}" placeholder="en">
+        </div>
+        <div class="form-group">
+            <label for="timezone">Timezone</label>
+            <input type="text" id="timezone" name="timezone" value="{{ user.timezone|default('UTC') }}" placeholder="UTC">
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+</div>
+{% endblock %}

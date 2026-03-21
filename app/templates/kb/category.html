@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} - Knowledge Base - DeskFlow{% endblock %}
+{% block content %}
+<h1>{{ category.name }}</h1>
+<p><a href="/knowledge-base/">&larr; Back to Knowledge Base</a></p>
+{% if subcategories %}
+<div class="card">
+    <h2>Subcategories</h2>
+    <ul class="category-list">
+        {% for sub in subcategories %}
+        <li><a href="/knowledge-base/category/{{ sub.id }}">{{ sub.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+<div class="card">
+    <h2>Articles</h2>
+    <ul class="article-list">
+        {% for article in articles %}
+        <li><a href="/knowledge-base/article/{{ article.id }}">{{ article.title }}</a></li>
+        {% else %}
+        <li>No articles in this category.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

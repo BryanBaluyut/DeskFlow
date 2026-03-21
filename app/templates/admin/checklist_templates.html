@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Checklist Templates - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Checklist Templates</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Items</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for c in checklist_templates|default([]) %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.items|length if c.items is iterable else '-' }} items</td>
+                <td>
+                    <form method="post" action="/admin/checklist-templates/{{ c.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Checklist Template</h2>
+    <form method="post" action="/admin/checklist-templates">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Items (JSON array)</label>
+            <textarea name="items" rows="5" placeholder='["Step 1", "Step 2", "Step 3"]' required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Checklist Template</button>
+    </form>
+</div>
+{% endblock %}

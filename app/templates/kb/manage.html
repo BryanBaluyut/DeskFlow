@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Manage KB - DeskFlow{% endblock %}
+{% block content %}
+<h1>Manage Knowledge Base</h1>
+
+<div class="card">
+    <h2>Create Category</h2>
+    <form action="/knowledge-base/manage/category" method="post">
+        <div class="form-group">
+            <label for="name">Category Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="parent_id">Parent Category</label>
+            <select id="parent_id" name="parent_id">
+                <option value="">(None - top level)</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Category</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Categories</h2>
+    <ul class="category-list">
+        {% for cat in categories %}
+        <li>{{ cat.name }}</li>
+        {% else %}
+        <li>No categories.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Articles</h2>
+    <p><a href="/knowledge-base/article/new" class="btn btn-primary">New Article</a></p>
+    <table class="ticket-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Visibility</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in articles %}
+            <tr>
+                <td><a href="/knowledge-base/article/{{ article.id }}">{{ article.title }}</a></td>
+                <td>{{ article.category.name if article.category else '-' }}</td>
+                <td><span class="badge">{{ article.visibility|default('public') }}</span></td>
+                <td>
+                    <a href="/knowledge-base/article/{{ article.id }}/edit" class="btn">Edit</a>
+                    <form action="/knowledge-base/article/{{ article.id }}/delete" method="post" style="display:inline" onsubmit="return confirm('Delete this article?')">
+                        <button type="submit" class="btn">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No articles.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

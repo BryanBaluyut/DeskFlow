@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel - DeskFlow{% endblock %}
+{% block content %}
+<h1>Admin Panel</h1>
+
+<div class="card">
+    <h2>Admin Sections</h2>
+    <ul class="admin-nav">
+        <li><a href="/admin/groups" class="btn">Groups</a></li>
+        <li><a href="/admin/organizations" class="btn">Organizations</a></li>
+        <li><a href="/admin/slas" class="btn">SLAs</a></li>
+        <li><a href="/admin/calendars" class="btn">Calendars</a></li>
+        <li><a href="/admin/triggers" class="btn">Triggers</a></li>
+        <li><a href="/admin/schedulers" class="btn">Schedulers</a></li>
+        <li><a href="/admin/macros" class="btn">Macros</a></li>
+        <li><a href="/admin/webhooks" class="btn">Webhooks</a></li>
+        <li><a href="/admin/text-modules" class="btn">Text Modules</a></li>
+        <li><a href="/admin/ticket-templates" class="btn">Ticket Templates</a></li>
+        <li><a href="/admin/signatures" class="btn">Signatures</a></li>
+        <li><a href="/admin/checklist-templates" class="btn">Checklist Templates</a></li>
+        <li><a href="/admin/object-attributes" class="btn">Object Attributes</a></li>
+        <li><a href="/admin/core-workflows" class="btn">Core Workflows</a></li>
+        <li><a href="/admin/overviews" class="btn">Overviews</a></li>
+        <li><a href="/admin/email-accounts" class="btn">Email Accounts</a></li>
+        <li><a href="/admin/web-forms" class="btn">Web Forms</a></li>
+        <li><a href="/admin/branding" class="btn">Branding</a></li>
+        <li><a href="/admin/data-privacy" class="btn">Data Privacy</a></li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>Users</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>VIP</th>
+                <th>Active</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users|default([]) %}
+            <tr>
+                <td>{{ u.display_name }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/role" class="inline-form">
+                        <select name="role" onchange="this.form.submit()">
+                            {% for r in ['customer', 'agent', 'admin'] %}
+                            <option value="{{ r }}" {{ 'selected' if u.role.value == r }}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/vip" class="inline-form">
+                        <button type="submit" class="btn btn-small">{{ 'Yes' if u.vip else 'No' }}</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/active" class="inline-form">
+                        <button type="submit" class="btn btn-small">{{ 'Yes' if u.active else 'No' }}</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

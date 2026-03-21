@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Branding - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Branding</h1>
+
+<div class="card">
+    <form method="post" action="/admin/branding">
+        <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" name="product_name" value="{{ settings.product_name|default('DeskFlow') }}">
+        </div>
+        <div class="form-group">
+            <label>Primary Color</label>
+            <input type="color" name="primary_color" value="{{ settings.primary_color|default('#0066cc') }}">
+        </div>
+        <div class="form-group">
+            <label>Custom CSS</label>
+            <textarea name="custom_css" rows="10">{{ settings.custom_css|default('') }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Branding</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - DeskFlow{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-number">{{ open_count }}</div>
+        <div class="stat-label">Open Tickets</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ my_count }}</div>
+        <div class="stat-label">Assigned to Me</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ unassigned_count }}</div>
+        <div class="stat-label">Unassigned</div>
+    </div>
+    <div class="stat-card {{ 'stat-danger' if escalated_count > 0 }}">
+        <div class="stat-number">{{ escalated_count }}</div>
+        <div class="stat-label">Escalated</div>
+    </div>
+</div>
+
+{% if notifications %}
+<div class="section">
+    <h2>Notifications</h2>
+    <div class="notification-list">
+        {% for n in notifications[:5] %}
+        <div class="notification-item {{ 'unseen' if not n.seen }}">
+            <span class="badge badge-{{ n.notification_type.value|replace('.', '_') }}">{{ n.notification_type.value }}</span>
+            <span>{{ n.message }}</span>
+            {% if n.ticket_id %}<a href="/tickets/{{ n.ticket_id }}">View</a>{% endif %}
+        </div>
+        {% endfor %}
+        <a href="/notifications">View all notifications</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-header">
+        <h2>Recent Tickets</h2>
+        <a href="/tickets/new" class="btn btn-primary">New Ticket</a>
+    </div>
+    {% include "partials/ticket_table.html" %}
+</div>
+{% endblock %}

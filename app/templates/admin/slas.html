@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}SLAs - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>SLAs</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>First Response (min)</th><th>Update (min)</th><th>Solution (min)</th><th>Calendar</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for s in slas|default([]) %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.first_response_time or '-' }}</td>
+                <td>{{ s.update_time or '-' }}</td>
+                <td>{{ s.solution_time or '-' }}</td>
+                <td>{{ s.calendar_id or '-' }}</td>
+                <td>
+                    <form method="post" action="/admin/slas/{{ s.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New SLA</h2>
+    <form method="post" action="/admin/slas">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>First Response Time (minutes)</label>
+            <input type="number" name="first_response_time" min="0">
+        </div>
+        <div class="form-group">
+            <label>Update Time (minutes)</label>
+            <input type="number" name="update_time" min="0">
+        </div>
+        <div class="form-group">
+            <label>Solution Time (minutes)</label>
+            <input type="number" name="solution_time" min="0">
+        </div>
+        <div class="form-group">
+            <label>Calendar</label>
+            <select name="calendar_id">
+                <option value="">-- None --</option>
+                {% for c in calendars|default([]) %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Create SLA</button>
+    </form>
+</div>
+{% endblock %}

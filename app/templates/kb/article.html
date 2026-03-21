@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - Knowledge Base - DeskFlow{% endblock %}
+{% block content %}
+<p><a href="/knowledge-base/category/{{ article.category_id }}">&larr; Back to category</a></p>
+<div class="card">
+    <h1>{{ article.title }}</h1>
+    <div class="article-meta">
+        <span>By {{ article.author.display_name if article.author else 'Unknown' }}</span>
+        <span>Created: {{ article.created_at.strftime('%Y-%m-%d') if article.created_at else '' }}</span>
+        {% if article.updated_at %}
+        <span>Updated: {{ article.updated_at.strftime('%Y-%m-%d') }}</span>
+        {% endif %}
+        <span class="badge">{{ article.visibility|default('public') }}</span>
+    </div>
+    <hr>
+    <div class="article-body">{{ article.body_html|safe }}</div>
+</div>
+{% if user and user.role.value in ('agent', 'admin') %}
+<p><a href="/knowledge-base/article/{{ article.id }}/edit" class="btn btn-primary">Edit Article</a></p>
+{% endif %}
+{% endblock %}

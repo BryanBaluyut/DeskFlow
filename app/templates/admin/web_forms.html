@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Web Forms - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Web Forms</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Title</th><th>Group</th><th>Embed</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for f in web_forms|default([]) %}
+            <tr>
+                <td>{{ f.name }}</td>
+                <td>{{ f.title or '' }}</td>
+                <td>{{ f.group_id or '-' }}</td>
+                <td>
+                    {% if f.embed_code %}
+                    <details><summary>Show</summary><code>{{ f.embed_code|e }}</code></details>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/admin/web-forms/{{ f.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Web Form</h2>
+    <form method="post" action="/admin/web-forms">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Title</label>
+            <input type="text" name="title">
+        </div>
+        <div class="form-group">
+            <label>Group</label>
+            <select name="group_id">
+                <option value="">-- None --</option>
+                {% for g in groups|default([]) %}
+                <option value="{{ g.id }}">{{ g.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Success Message</label>
+            <textarea name="success_message" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Web Form</button>
+    </form>
+</div>
+{% endblock %}

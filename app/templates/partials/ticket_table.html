@@ -1,0 +1,32 @@
+<table class="ticket-table">
+    <thead>
+        <tr>
+            <th>{% if user.role.value != 'customer' %}<input type="checkbox" id="select-all">{% endif %}</th>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Group</th>
+            <th>Creator</th>
+            <th>Assignee</th>
+            <th>Tags</th>
+            <th>Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in tickets %}
+        <tr class="{{ 'escalated-row' if t.escalated }}">
+            <td>{% if user.role.value != 'customer' %}<input type="checkbox" name="ticket_ids" value="{{ t.id }}" class="ticket-checkbox">{% endif %}</td>
+            <td><a href="/tickets/{{ t.id }}">{{ t.number }}</a></td>
+            <td><a href="/tickets/{{ t.id }}">{{ t.subject }}</a></td>
+            <td><span class="badge badge-{{ t.status.value }}">{{ t.status.value|replace('_', ' ') }}</span></td>
+            <td><span class="badge priority-{{ t.priority.value }}">{{ t.priority.value }}</span></td>
+            <td>{{ t.group.display_name if t.group else '-' }}</td>
+            <td>{{ t.creator.display_name if t.creator else '-' }}</td>
+            <td>{{ t.assignee.display_name if t.assignee else 'Unassigned' }}</td>
+            <td>{% for tag in t.tags %}<span class="tag">{{ tag.name }}</span>{% endfor %}</td>
+            <td>{{ t.updated_at.strftime('%Y-%m-%d %H:%M') if t.updated_at else '' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

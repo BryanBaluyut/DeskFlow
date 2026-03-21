@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}#{{ ticket.number }}: {{ ticket.subject }} - DeskFlow{% endblock %}
+{% block content %}
+<div class="ticket-header">
+    <h1><span class="ticket-num">#{{ ticket.number }}</span> {{ ticket.subject }}</h1>
+    <div class="ticket-meta">
+        <span class="badge badge-{{ ticket.status.value }}">{{ ticket.status.value|replace('_', ' ') }}</span>
+        <span class="badge priority-{{ ticket.priority.value }}">{{ ticket.priority.value }}</span>
+        {% if ticket.channel %}<span class="badge badge-channel">{{ ticket.channel.value }}</span>{% endif %}
+        {% if ticket.escalated %}<span class="badge badge-escalated">ESCALATED</span>{% endif %}
+        <span>by {{ ticket.creator.display_name if ticket.creator else 'Unknown' }}</span>
+        <span>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') if ticket.created_at else '' }}</span>
+        {% if ticket.sla %}<span class="badge">SLA: {{ ticket.sla.name }}</span>{% endif %}
+    </div>
+</div>
+
+{% if user.role.value != 'customer' %}
+<!-- Agent controls -->
+<div class="ticket-actions card">
+    <form method="post" action="/tickets/{{ ticket.id }}/update" class="inline-form">
+        <label>Status:</label>
+        <select name="status">
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {{ 'selected' if s.value == ticket.status.value }}>{{ s.value|replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <label>Priority:</label>
+        <select name="priority">
+            {% for p in priorities %}
+            <option value="{{ p.value }}" {{ 'selected' if p.value == ticket.priority.value }}>{{ p.value|title }}</option>
+            {% endfor %}
+        </select>
+        <label>Group:</label>
+        <select name="group_id">
+            <option value="">None</option>
+            {% for g in groups %}
+            <option value="{{ g.id }}" {{ 'selected' if ticket.group_id == g.id }}>{{ g.display_name }}</option>
+            {% endfor %}
+        </select>
+        <label>Assignee:</label>
+        <select name="assignee_id">
+            <option value="">Unassigned</option>
+            {% for a in agents %}
+            <option value="{{ a.id }}" {{ 'selected' if ticket.assignee_id == a.id }}>{{ a.display_name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn">Update</button>
+    </form>
+</div>
+
+<!-- Macros -->
+{% if macros %}
+<div class="macros-bar">
+    <span>Macros:</span>
+    {% for m in macros %}
+    <form method="post" action="/tickets/{{ ticket.id }}/macro/{{ m.id }}" style="display:inline;">
+        <button type="submit" class="btn btn-small" title="{{ m.note }}">{{ m.name }}</button>
+    </form>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Tags -->
+<div class="ticket-tags card">
+    <strong>Tags:</strong>
+    {% for tag in ticket.tags %}
+    <span class="tag">{{ tag.name }}
+        <form method="post" action="/tickets/{{ ticket.id }}/tags/{{ tag.id }}/remove" style="display:inline;">
+            <button type="submit" class="tag-remove">&times;</button>
+        </form>
+    </span>
+    {% endfor %}
+    <form method="post" action="/tickets/{{ ticket.id }}/tags" class="inline-form">
+        <input type="text" name="tag_name" placeholder="Add tag" size="10">
+        <button type="submit" class="btn btn-small">+</button>
+    </form>
+</div>
+
+<!-- Linked Tickets -->
+{% if linked_tickets %}
+<div class="card">
+    <strong>Linked Tickets:</strong>
+    <ul>
+        {% for lt in linked_tickets %}
+        <li><span class="badge">{{ lt.type }}</span> <a href="/tickets/{{ lt.ticket.id }}">#{{ lt.ticket.number }}: {{ lt.ticket.subject }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+<div class="card">
+    <form method="post" action="/tickets/{{ ticket.id }}/link" class="inline-form">
+        <input type="number" name="target_id" placeholder="Ticket ID" size="6">
+        <select name="link_type">
+            <option value="related">Related</option>
+            <option value="parent">Parent</option>
+            <option value="child">Child</option>
+        </select>
+        <button type="submit" class="btn btn-small">Link</button>
+    </form>
+    <form method="post" action="/tickets/{{ ticket.id }}/merge" class="inline-form" style="margin-left:1rem;">
+        <input type="number" name="target_id" placeholder="Merge into ID" size="6">
+        <button type="submit" class="btn btn-small btn-danger">Merge</button>
+    </form>
+</div>
+
+<!-- Checklist -->
+<div class="card">
+    <h3>Checklist</h3>
+    {% if ticket.checklist %}
+    <ul class="checklist">
+        {% for item in ticket.checklist.items %}
+        <li class="{{ 'done' if item.status.value == 'done' }}">
+            <form method="post" action="/tickets/{{ ticket.id }}/checklist/item/{{ item.id }}/toggle" style="display:inline;">
+                <button type="submit" class="checklist-toggle">{{ '&#9745;' if item.status.value == 'done' else '&#9744;' }}</button>
+            </form>
+            {{ item.title }}
+            {% if item.linked_ticket %}<a href="/tickets/{{ item.linked_ticket.id }}">#{{ item.linked_ticket.id }}</a>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    <form method="post" action="/tickets/{{ ticket.id }}/checklist/item" class="inline-form">
+        <input type="text" name="title" placeholder="New item">
+        <button type="submit" class="btn btn-small">Add</button>
+    </form>
+    {% else %}
+    <form method="post" action="/tickets/{{ ticket.id }}/checklist" class="inline-form">
+        {% if checklist_templates %}
+        <select name="template_id">
+            <option value="">Empty checklist</option>
+            {% for ct in checklist_templates %}
+            <option value="{{ ct.id }}">{{ ct.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button type="submit" class="btn btn-small">Add Checklist</button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Time Accounting -->
+<div class="card">
+    <h3>Time: {{ "%.0f"|format(total_time) }} min</h3>
+    <form method="post" action="/tickets/{{ ticket.id }}/time" class="inline-form">
+        <input type="number" name="time_minutes" placeholder="Minutes" step="1" min="1" size="5">
+        <select name="activity_type">
+            {% for tt in time_types %}
+            <option value="{{ tt.value }}">{{ tt.value|replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="note" placeholder="Note" size="15">
+        <button type="submit" class="btn btn-small">Log</button>
+    </form>
+</div>
+
+<!-- Mentions -->
+{% if ticket.mentions %}
+<div class="card">
+    <strong>Watching:</strong>
+    {% for m in ticket.mentions %}
+    <span class="badge">{{ m.user.display_name }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Ticket Body -->
+<div class="ticket-body card">
+    <div class="card-body">{{ ticket.body_html|safe }}</div>
+</div>
+
+<!-- Articles/Comments -->
+<div class="comments-section">
+    <h2>Activity ({{ articles|length }})</h2>
+
+    {% for article in articles %}
+    <div class="comment card {{ 'comment-internal' if article.is_internal }} {{ 'comment-system' if article.sender == 'system' }}">
+        <div class="comment-header">
+            <strong>{{ article.author.display_name if article.author else 'System' }}</strong>
+            <span class="badge badge-channel">{{ article.channel.value if article.channel else 'web' }}</span>
+            <span>{{ article.created_at.strftime('%Y-%m-%d %H:%M') if article.created_at else '' }}</span>
+            {% if article.is_internal %}<span class="badge badge-internal">Internal</span>{% endif %}
+            {% if article.sender == 'system' %}<span class="badge">System</span>{% endif %}
+            {% if user.role.value != 'customer' %}
+            <form method="post" action="/tickets/{{ ticket.id }}/split/{{ article.id }}" style="display:inline;">
+                <button type="submit" class="btn btn-small" title="Split into new ticket">Split</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="comment-body">{{ article.body_html|safe }}</div>
+        {% if article.attachments %}
+        <div class="attachments">
+            {% for att in article.attachments %}
+            <a href="/static/uploads/{{ att.stored_path }}" class="attachment">{{ att.filename }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- History -->
+    {% if user.role.value != 'customer' and ticket.history %}
+    <details class="history-section">
+        <summary>History ({{ ticket.history|length }} entries)</summary>
+        <table class="ticket-table small-table">
+            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Field</th><th>Old</th><th>New</th></tr></thead>
+            <tbody>
+                {% for h in ticket.history %}
+                <tr>
+                    <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M') if h.created_at else '' }}</td>
+                    <td>{{ h.user.display_name if h.user else 'System' }}</td>
+                    <td>{{ h.action }}</td>
+                    <td>{{ h.field or '' }}</td>
+                    <td>{{ h.old_value or '' }}</td>
+                    <td>{{ h.new_value or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% endif %}
+
+    <!-- Add Article -->
+    <div class="add-comment card">
+        <h3>Add Reply</h3>
+        <form method="post" action="/tickets/{{ ticket.id }}/article">
+            <div class="form-group">
+                <textarea name="body" rows="4" required placeholder="Type your reply... Use @name to mention someone"></textarea>
+            </div>
+            {% if user.role.value != 'customer' %}
+            <label class="checkbox-label">
+                <input type="checkbox" name="is_internal" value="true"> Internal note (not visible to customer)
+            </label>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Add Reply</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

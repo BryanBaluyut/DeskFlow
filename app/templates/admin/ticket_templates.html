@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Ticket Templates - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Ticket Templates</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Subject</th><th>Priority</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for t in templates|default([]) %}
+            <tr>
+                <td>{{ t.name }}</td>
+                <td>{{ t.subject }}</td>
+                <td><span class="badge">{{ t.priority or '-' }}</span></td>
+                <td>
+                    <form method="post" action="/admin/ticket-templates/{{ t.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Template</h2>
+    <form method="post" action="/admin/ticket-templates">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" name="subject" required>
+        </div>
+        <div class="form-group">
+            <label>Body</label>
+            <textarea name="body" rows="5"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Priority</label>
+            <select name="priority">
+                <option value="low">Low</option>
+                <option value="normal" selected>Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Template</button>
+    </form>
+</div>
+{% endblock %}

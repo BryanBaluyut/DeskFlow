@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Data Privacy - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Data Privacy</h1>
+
+<div class="card">
+    <h2>Deletion Tasks</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>ID</th><th>User ID</th><th>Status</th><th>Requested At</th></tr>
+        </thead>
+        <tbody>
+            {% for d in deletion_tasks|default([]) %}
+            <tr>
+                <td>{{ d.id }}</td>
+                <td>{{ d.user_id }}</td>
+                <td><span class="badge">{{ d.status }}</span></td>
+                <td>{{ d.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Request User Data Deletion</h2>
+    <form method="post" action="/admin/data-privacy">
+        <div class="form-group">
+            <label>User ID</label>
+            <input type="number" name="user_id" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Request Deletion</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if article else 'New' }} Article - DeskFlow{% endblock %}
+{% block content %}
+<h1>{{ 'Edit Article' if article else 'New Article' }}</h1>
+<div class="card">
+    <form action="{{ '/knowledge-base/article/' ~ article.id ~ '/edit' if article else '/knowledge-base/article/new' }}" method="post">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required value="{{ article.title if article else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="body_html">Body (HTML)</label>
+            <textarea id="body_html" name="body_html" rows="15">{{ article.body_html if article else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="category_id">Category</label>
+            <select id="category_id" name="category_id" required>
+                <option value="">-- Select --</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if article and article.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <select id="visibility" name="visibility">
+                {% for v in ['public', 'internal', 'draft'] %}
+                <option value="{{ v }}" {% if article and article.visibility == v %}selected{% endif %}>{{ v|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">{{ 'Update' if article else 'Create' }}</button>
+        <a href="/knowledge-base/manage" class="btn">Cancel</a>
+    </form>
+</div>
+{% endblock %}

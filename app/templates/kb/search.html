@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Search KB - DeskFlow{% endblock %}
+{% block content %}
+<h1>Search Knowledge Base</h1>
+<div class="card">
+    <form action="/knowledge-base/search" method="get" class="form-group">
+        <input type="text" name="q" placeholder="Search articles..." value="{{ q|default('') }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+{% if results is defined %}
+<div class="card">
+    <h2>Results{% if q %} for "{{ q }}"{% endif %}</h2>
+    <ul class="article-list">
+        {% for article in results %}
+        <li><a href="/knowledge-base/article/{{ article.id }}">{{ article.title }}</a></li>
+        {% else %}
+        <li>No results found.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}

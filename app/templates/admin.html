@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>User Management</h1>
+
+<table class="ticket-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>
+                <form method="post" action="/admin/users/{{ u.id }}/role" class="inline-form">
+                    <select name="role">
+                        {% for r in roles %}
+                        <option value="{{ r.value }}" {{ 'selected' if r.value == u.role.value }}>{{ r.value|title }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-small">Save</button>
+                </form>
+            </td>
+            <td>
+                <span class="text-muted">Joined {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

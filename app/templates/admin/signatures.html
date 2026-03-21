@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Signatures - Admin - DeskFlow{% endblock %}
+{% block content %}
+<h1>Signatures</h1>
+
+<div class="card">
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Name</th><th>Preview</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for s in signatures|default([]) %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.body_html[:100]|e }}{{ '...' if s.body_html|length > 100 }}</td>
+                <td>
+                    <form method="post" action="/admin/signatures/{{ s.id }}/delete" class="inline-form">
+                        <button type="submit" class="btn btn-small">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Add New Signature</h2>
+    <form method="post" action="/admin/signatures">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="name" required>
+        </div>
+        <div class="form-group">
+            <label>Body (HTML)</label>
+            <textarea name="body_html" rows="6" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Signature</button>
+    </form>
+</div>
+{% endblock %}

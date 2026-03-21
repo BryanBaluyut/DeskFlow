@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Reports - DeskFlow{% endblock %}
+{% block content %}
+<h1>Reports Dashboard</h1>
+
+<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+    {% for label, count in status_counts.items() %}
+    <div class="stat-card">
+        <div class="stat-value">{{ count }}</div>
+        <div class="stat-label">{{ label|capitalize }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+    <h2 style="width:100%;">By Priority</h2>
+    {% for label, count in priority_counts.items() %}
+    <div class="stat-card">
+        <div class="stat-value">{{ count }}</div>
+        <div class="stat-label">{{ label|capitalize }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+    <h2 style="width:100%;">By Group</h2>
+    {% for label, count in group_counts.items() %}
+    <div class="stat-card">
+        <div class="stat-value">{{ count }}</div>
+        <div class="stat-label">{{ label }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h2>Agent Statistics</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Agent</th><th>Assigned</th><th>Closed</th><th>Avg Response</th></tr>
+        </thead>
+        <tbody>
+            {% for agent in agent_stats %}
+            <tr>
+                <td>{{ agent.name }}</td>
+                <td>{{ agent.assigned }}</td>
+                <td>{{ agent.closed }}</td>
+                <td>{{ agent.avg_response|default('-') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No data.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Total Time Tracked</h2>
+    <p style="font-size:1.5rem;font-weight:bold;">{{ total_time|default(0) }} hours</p>
+    <p><a href="/reports/time-accounting" class="btn">View Time Accounting</a></p>
+</div>
+{% endblock %}
