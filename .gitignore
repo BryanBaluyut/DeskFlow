@@ -32,3 +32,6 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Project config
+.claude/
