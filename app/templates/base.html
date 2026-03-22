@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DeskFlow{% endblock %}</title>
+    <title>{% block title %}{{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>:root { --primary-color: {{ request.app.state.primary_color|default('#2563eb') }}; }</style>
+    {% if request.app.state.custom_css %}<style>{{ request.app.state.custom_css }}</style>{% endif %}
     {% block head %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
-        <div class="nav-brand"><a href="/">DeskFlow</a></div>
+        <div class="nav-brand"><a href="/">{{ request.app.state.app_name|default('DeskFlow') }}</a></div>
         {% if user %}
         <div class="nav-links">
             <a href="/">Dashboard</a>
@@ -39,6 +41,29 @@
         {% block content %}{% endblock %}
     </main>
     <script src="/static/app.js"></script>
+    <script>
+    // CSRF: intercept form submissions, send via fetch with x-csrftoken header
+    document.querySelectorAll('form[method="post"]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            var token = document.cookie.split(';').map(function(c){return c.trim();}).find(function(c){return c.startsWith('csrftoken=');});
+            if (token) {
+                e.preventDefault();
+                var csrfValue = token.split('=')[1];
+                fetch(form.action || window.location.href, {
+                    method: 'POST',
+                    headers: {'x-csrftoken': csrfValue},
+                    body: new FormData(form),
+                    redirect: 'follow',
+                    credentials: 'same-origin'
+                }).then(function(r) {
+                    if (r.redirected) { window.location.href = r.url; }
+                    else if (r.ok) { window.location.reload(); }
+                    else { r.text().then(function(t){ alert('Error: ' + r.status); }); }
+                });
+            }
+        });
+    });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

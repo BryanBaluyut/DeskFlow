@@ -1,9 +1,44 @@
 {% extends "base.html" %}
-{% block title %}Login - DeskFlow{% endblock %}
+{% block title %}Sign In - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
-<div class="login-card">
-    <h1>DeskFlow</h1>
-    <p>IT Help Desk</p>
-    <a href="/auth/login" class="btn btn-primary btn-large">Sign in with Microsoft</a>
+<div style="max-width:400px;margin:3rem auto;">
+    <h1 style="text-align:center;margin-bottom:0.5rem;">{{ request.app.state.app_name|default('DeskFlow') }}</h1>
+    <p style="text-align:center;color:#666;margin-bottom:2rem;">IT Help Desk</p>
+
+    {% if error %}
+    <div style="background:#fee;border:1px solid #fcc;color:#c00;padding:0.75rem 1rem;border-radius:6px;margin-bottom:1rem;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {% if local_auth %}
+    <div class="card">
+        <form method="post" action="/auth/login">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="you@company.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if sso_enabled and local_auth %}
+    <div style="text-align:center;margin:1rem 0;color:#999;">&mdash; or &mdash;</div>
+    {% endif %}
+
+    {% if sso_enabled %}
+    <div class="card" style="text-align:center;">
+        <a href="/auth/sso" class="btn" style="width:100%;">Sign in with Microsoft</a>
+    </div>
+    {% endif %}
+
+    <p style="text-align:center;margin-top:1.5rem;color:#888;font-size:0.875rem;">
+        Can't sign in? Contact your system administrator.
+    </p>
 </div>
 {% endblock %}

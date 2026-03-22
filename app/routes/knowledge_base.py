@@ -1,4 +1,3 @@
-import bleach
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
@@ -8,11 +7,9 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_user, require_agent
 from app.database import get_db
 from app.models import KBCategory, KBArticle, ArticleVisibility, User, UserRole
+from app.schemas import KBArticleForm, KBCategoryForm
 
 router = APIRouter(prefix="/knowledge-base", tags=["knowledge_base"])
-
-ALLOWED_TAGS = ["p", "br", "b", "i", "u", "a", "ul", "ol", "li", "pre", "code", "strong", "em",
-                "blockquote", "h1", "h2", "h3", "h4", "img", "table", "thead", "tbody", "tr", "th", "td"]
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -112,7 +109,8 @@ async def create_category(
     name: str = Form(...), parent_id: int | None = Form(None),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_agent),
 ):
-    cat = KBCategory(name=name, parent_id=parent_id)
+    form = KBCategoryForm(name=name, parent_id=parent_id)
+    cat = KBCategory(name=form.name, parent_id=form.parent_id)
     db.add(cat)
     await db.commit()
     return RedirectResponse(url="/knowledge-base/manage", status_code=302)
@@ -121,9 +119,14 @@ async def create_category(
 @router.post("/categories/{cat_id}/delete")
 async def delete_category(cat_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_agent)):
     cat = await db.get(KBCategory, cat_id)
-    if cat:
-        await db.delete(cat)
-        await db.commit()
+    if not cat:
+        raise HTTPException(404)
+    # Check for articles in this category
+    articles = await db.execute(select(KBArticle).where(KBArticle.category_id == cat_id))
+    if articles.scalars().first():
+        raise HTTPException(400, "Cannot delete category with articles. Delete or move articles first.")
+    await db.delete(cat)
+    await db.commit()
     return RedirectResponse(url="/knowledge-base/manage", status_code=302)
 
 
@@ -146,9 +149,10 @@ async def create_article(
     category_id: int = Form(...), visibility: str = Form("draft"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_agent),
 ):
+    form = KBArticleForm(title=title, body_html=body_html, category_id=category_id, visibility=visibility)
     article = KBArticle(
-        title=title, body_html=bleach.clean(body_html, tags=ALLOWED_TAGS, strip=True),
-        category_id=category_id, visibility=ArticleVisibility(visibility),
+        title=form.title, body_html=form.body_html,
+        category_id=form.category_id, visibility=ArticleVisibility(form.visibility),
         author_id=user.id,
     )
     db.add(article)
@@ -180,13 +184,14 @@ async def update_article(
     category_id: int = Form(...), visibility: str = Form("draft"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_agent),
 ):
+    form = KBArticleForm(title=title, body_html=body_html, category_id=category_id, visibility=visibility)
     article = await db.get(KBArticle, article_id)
     if not article:
         raise HTTPException(404)
-    article.title = title
-    article.body_html = bleach.clean(body_html, tags=ALLOWED_TAGS, strip=True)
-    article.category_id = category_id
-    article.visibility = ArticleVisibility(visibility)
+    article.title = form.title
+    article.body_html = form.body_html
+    article.category_id = form.category_id
+    article.visibility = ArticleVisibility(form.visibility)
     await db.commit()
     return RedirectResponse(url=f"/knowledge-base/article/{article_id}", status_code=302)
 
@@ -213,6 +218,22 @@ async def public_kb_home(request: Request, db: AsyncSession = Depends(get_db)):
     )).scalars().all()
     return request.app.state.templates.TemplateResponse("kb/public_index.html", {
         "request": request, "categories": categories,
+    })
+
+
+@public_router.get("/category/{category_id}", response_class=HTMLResponse)
+async def public_kb_category(
+    request: Request, category_id: int, db: AsyncSession = Depends(get_db),
+):
+    category = await db.get(KBCategory, category_id, options=[
+        selectinload(KBCategory.children),
+        selectinload(KBCategory.articles).selectinload(KBArticle.author),
+    ])
+    if not category:
+        raise HTTPException(404)
+    articles = [a for a in category.articles if a.visibility == ArticleVisibility.public]
+    return request.app.state.templates.TemplateResponse("kb/public_category.html", {
+        "request": request, "category": category, "articles": articles,
     })
 
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Chat Overview - DeskFlow{% endblock %}
+{% block title %}Chat Overview - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Chat Dashboard</h1>
 

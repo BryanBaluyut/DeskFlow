@@ -1,0 +1,3 @@
+[lint]
+# E712: SQLAlchemy requires `== True`/`== False` for column comparisons
+ignore = ["E712"]

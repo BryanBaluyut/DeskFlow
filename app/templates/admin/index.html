@@ -1,7 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Admin Panel - DeskFlow{% endblock %}
+{% block title %}Admin Panel - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Admin Panel</h1>
+
+{% if request.query_params.get('error') %}
+<div class="card" style="background:#fef2f2;border:1px solid #ef4444;color:#b91c1c;padding:0.75rem 1rem;margin-bottom:1rem;">
+    {{ request.query_params.get('error') }}
+</div>
+{% endif %}
 
 <div class="card">
     <h2>Admin Sections</h2>
@@ -38,6 +44,7 @@
                 <th>Role</th>
                 <th>VIP</th>
                 <th>Active</th>
+                <th>Out of Office</th>
             </tr>
         </thead>
         <tbody>
@@ -47,7 +54,7 @@
                 <td>{{ u.email }}</td>
                 <td>
                     <form method="post" action="/admin/users/{{ u.id }}/role" class="inline-form">
-                        <select name="role" onchange="this.form.submit()">
+                        <select name="role" onchange="this.form.requestSubmit()">
                             {% for r in ['customer', 'agent', 'admin'] %}
                             <option value="{{ r }}" {{ 'selected' if u.role.value == r }}>{{ r }}</option>
                             {% endfor %}
@@ -64,9 +71,47 @@
                         <button type="submit" class="btn btn-small">{{ 'Yes' if u.active else 'No' }}</button>
                     </form>
                 </td>
+                <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/out-of-office" class="inline-form" style="display:flex;gap:0.25rem;align-items:center;">
+                        <select name="out_of_office" onchange="this.form.requestSubmit()">
+                            <option value="false" {{ '' if u.out_of_office else 'selected' }}>Active</option>
+                            <option value="true" {{ 'selected' if u.out_of_office else '' }}>OOO</option>
+                        </select>
+                        {% if u.out_of_office and u.replacement %}
+                        <span style="font-size:0.8rem;color:#666;">({{ u.replacement.display_name }})</span>
+                        {% endif %}
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div class="card">
+    <h2>Create User</h2>
+    <form method="post" action="/admin/users/create" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="flex:1;min-width:200px;">
+            <label for="new_email">Email</label>
+            <input type="email" id="new_email" name="email" required>
+        </div>
+        <div class="form-group" style="flex:1;min-width:200px;">
+            <label for="new_name">Display Name</label>
+            <input type="text" id="new_name" name="display_name" required>
+        </div>
+        <div class="form-group" style="min-width:120px;">
+            <label for="new_role">Role</label>
+            <select id="new_role" name="role">
+                <option value="customer">Customer</option>
+                <option value="agent">Agent</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:200px;">
+            <label for="new_password">Password</label>
+            <input type="password" id="new_password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Create</button>
+    </form>
 </div>
 {% endblock %}

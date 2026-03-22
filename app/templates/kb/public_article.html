@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ article.title }} - DeskFlow Help Center</title>
+    <title>{{ article.title }} - {{ request.app.state.app_name|default('DeskFlow') }} Help Center</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; background: #f5f7fa; }
@@ -22,11 +22,11 @@
     </style>
 </head>
 <body>
-    <div class="header"><a href="/kb">DeskFlow Help Center</a></div>
+    <div class="header"><a href="/help">{{ request.app.state.app_name|default('DeskFlow') }} Help Center</a></div>
     <div class="container">
         <div class="breadcrumb">
-            <a href="/kb">Home</a> &raquo;
-            {% if article.category %}<a href="/kb/category/{{ article.category_id }}">{{ article.category.name }}</a> &raquo;{% endif %}
+            <a href="/help">Home</a> &raquo;
+            {% if article.category %}<a href="/help/category/{{ article.category_id }}">{{ article.category.name }}</a> &raquo;{% endif %}
             {{ article.title }}
         </div>
         <div class="card">
@@ -38,6 +38,6 @@
             <div class="article-body">{{ article.body_html|safe }}</div>
         </div>
     </div>
-    <div class="footer">Powered by DeskFlow</div>
+    <div class="footer">Powered by {{ request.app.state.app_name|default('DeskFlow') }}</div>
 </body>
 </html>

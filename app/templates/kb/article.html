@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ article.title }} - Knowledge Base - DeskFlow{% endblock %}
+{% block title %}{{ article.title }} - Knowledge Base - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <p><a href="/knowledge-base/category/{{ article.category_id }}">&larr; Back to category</a></p>
 <div class="card">

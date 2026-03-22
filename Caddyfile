@@ -1,0 +1,3 @@
+{$APP_DOMAIN:localhost} {
+    reverse_proxy deskflow:8000
+}

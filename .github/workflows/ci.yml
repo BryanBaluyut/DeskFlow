@@ -19,6 +19,20 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: deskflow_test
+          POSTGRES_USER: deskflow
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U deskflow"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,9 +43,21 @@ jobs:
     env:
       SECRET_KEY: test-secret-key
       DATABASE_URL: sqlite+aiosqlite:///test.db
-      ENTRA_CLIENT_ID: test
-      ENTRA_CLIENT_SECRET: test
-      ENTRA_TENANT_ID: test
+      ENTRA_CLIENT_ID: ""
+      ENTRA_CLIENT_SECRET: ""
+      ENTRA_TENANT_ID: ""
+      LOG_FORMAT: console
+      ENVIRONMENT: development
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit -r requirements.txt
 
   docker:
     runs-on: ubuntu-latest

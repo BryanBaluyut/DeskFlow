@@ -500,7 +500,7 @@ class Trigger(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False)
-    event = Column(Enum(TriggerEvent), nullable=False)
+    event = Column(Enum(TriggerEvent, values_callable=lambda e: [x.value for x in e]), nullable=False)
     conditions = Column(JSON, default=dict)  # conditions to match
     actions = Column(JSON, default=list)  # actions to perform
     active = Column(Boolean, default=True)
@@ -709,7 +709,7 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    notification_type = Column(Enum(NotificationType), nullable=False)
+    notification_type = Column(Enum(NotificationType, values_callable=lambda e: [x.value for x in e]), nullable=False)
     ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=True)
     article_id = Column(Integer, ForeignKey("articles.id"), nullable=True)
     message = Column(Text, nullable=False)
@@ -898,6 +898,29 @@ class DataPrivacyTask(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     requested_by = relationship("User")
+
+
+# ---------------------------------------------------------------------------
+# Invitations
+# ---------------------------------------------------------------------------
+
+class Invitation(Base):
+    __tablename__ = "invitations"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(320), nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.customer, nullable=False)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+    token = Column(String(255), unique=True, nullable=False)
+    invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    accepted = Column(Boolean, default=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+
+    invited_by = relationship("User")
+    group = relationship("Group")
+    organization = relationship("Organization")
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Reports - DeskFlow{% endblock %}
+{% block title %}Reports - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Reports Dashboard</h1>
 
@@ -24,10 +24,10 @@
 
 <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
     <h2 style="width:100%;">By Group</h2>
-    {% for label, count in group_counts.items() %}
+    {% for g in group_counts %}
     <div class="stat-card">
-        <div class="stat-value">{{ count }}</div>
-        <div class="stat-label">{{ label }}</div>
+        <div class="stat-value">{{ g.count }}</div>
+        <div class="stat-label">{{ g.name }}</div>
     </div>
     {% endfor %}
 </div>

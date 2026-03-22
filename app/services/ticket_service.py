@@ -1,4 +1,3 @@
-import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy import select, func
@@ -6,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     Article, Ticket, TicketHistory, TicketStatus, Notification, NotificationType,
-    Mention, User, UserRole, Tag, Checklist, ChecklistItem, ChecklistTemplate,
-    TicketLink, LinkType, SLA, Calendar,
+    Mention, User, Checklist, ChecklistItem, ChecklistTemplate,
+    TicketLink, LinkType, SLA,
 )
 
 
@@ -46,15 +45,21 @@ async def create_notification(
 
 async def notify_mentions(db: AsyncSession, ticket_id: int, text: str, author_id: int):
     """Find @mentions in text and create mention records + notifications."""
-    import re
-    mentioned = re.findall(r'@(\w+)', text)
-    if not mentioned:
+    if "@" not in text:
         return
-    for name in mentioned:
-        result = await db.execute(
-            select(User).where(User.display_name.ilike(f"%{name}%"))
-        )
-        user = result.scalar_one_or_none()
+    # Load all active users and match their display names in the text
+    result = await db.execute(
+        select(User).where(User.active == True)
+    )
+    all_users = result.scalars().all()
+    # Sort by name length descending so longer names match first
+    all_users.sort(key=lambda u: len(u.display_name), reverse=True)
+    matched_users = []
+    text_lower = text.lower()
+    for user in all_users:
+        if f"@{user.display_name.lower()}" in text_lower or f"@{user.display_name.split()[0].lower()}" in text_lower:
+            matched_users.append(user)
+    for user in matched_users:
         if user and user.id != author_id:
             # Upsert mention
             existing = await db.execute(
@@ -70,10 +75,16 @@ async def notify_mentions(db: AsyncSession, ticket_id: int, text: str, author_id
 
 async def merge_tickets(db: AsyncSession, source_id: int, target_id: int, user_id: int):
     """Merge source ticket into target ticket."""
+    if source_id == target_id:
+        return False
     source = await db.get(Ticket, source_id)
     target = await db.get(Ticket, target_id)
     if not source or not target:
         return False
+    if source.status == TicketStatus.closed:
+        return False
+    if target.merged_into_id:
+        return False  # Target is already merged elsewhere
 
     # Move all articles from source to target
     result = await db.execute(select(Article).where(Article.ticket_id == source_id))

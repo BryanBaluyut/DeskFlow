@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}My Tickets - DeskFlow{% endblock %}
+{% block title %}My Tickets - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>My Tickets</h1>
 <div class="card">
@@ -8,7 +8,7 @@
         <select id="status" name="status" onchange="this.form.submit()">
             <option value="">All</option>
             {% for s in ['open', 'pending', 'closed'] %}
-            <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>
+            <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s|capitalize }}</option>
             {% endfor %}
         </select>
     </form>
@@ -22,9 +22,9 @@
             {% for ticket in tickets %}
             <tr>
                 <td>{{ ticket.number }}</td>
-                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.title }}</a></td>
-                <td><span class="badge">{{ ticket.status }}</span></td>
-                <td>{{ ticket.priority|default('-') }}</td>
+                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.subject }}</a></td>
+                <td><span class="badge">{{ ticket.status.value|replace('_', ' ')|capitalize }}</span></td>
+                <td>{{ ticket.priority.value|capitalize if ticket.priority else '-' }}</td>
                 <td>{{ ticket.updated_at.strftime('%Y-%m-%d') if ticket.updated_at else '' }}</td>
             </tr>
             {% else %}

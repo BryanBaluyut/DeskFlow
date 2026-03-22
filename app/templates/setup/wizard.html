@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Setup - DeskFlow</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div style="max-width:500px;margin:2rem auto;padding:0 1rem;">
+    <h1 style="text-align:center;">DeskFlow Setup</h1>
+    <p style="text-align:center;color:#666;margin-bottom:2rem;">Step {{ step }} of 5</p>
+
+    <div style="background:#e8e8e8;border-radius:4px;height:8px;margin-bottom:2rem;">
+        <div style="background:#2563eb;height:100%;border-radius:4px;width:{{ (step / 5 * 100)|int }}%;transition:width 0.3s;"></div>
+    </div>
+
+    {% if step == 1 %}
+    <div class="card">
+        <h2>Create Admin Account</h2>
+        <p style="color:#666;">This will be the first administrator account.</p>
+        <form method="post" action="/setup/step1">
+            <div class="form-group">
+                <label for="display_name">Your Name</label>
+                <input type="text" id="display_name" name="display_name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Continue</button>
+        </form>
+    </div>
+
+    {% elif step == 2 %}
+    <div class="card">
+        <h2>Organization Basics</h2>
+        <form method="post" action="/setup/step2">
+            <div class="form-group">
+                <label for="product_name">Product Name</label>
+                <input type="text" id="product_name" name="product_name" value="DeskFlow" required>
+            </div>
+            <div class="form-group">
+                <label for="primary_color">Primary Color</label>
+                <input type="color" id="primary_color" name="primary_color" value="#2563eb">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Continue</button>
+        </form>
+    </div>
+
+    {% elif step == 3 %}
+    <div class="card">
+        <h2>Create First Support Group</h2>
+        <p style="color:#666;">Groups organize your support team. You can add more later.</p>
+        <form method="post" action="/setup/step3">
+            <div class="form-group">
+                <label for="group_name">Group Name</label>
+                <input type="text" id="group_name" name="group_name" value="IT Support" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Continue</button>
+        </form>
+    </div>
+
+    {% elif step == 4 %}
+    <div class="card">
+        <h2>Email Configuration (Optional)</h2>
+        <p style="color:#666;">Configure email to receive tickets via inbox. You can set this up later in Admin &rarr; Email Accounts.</p>
+        <form method="post" action="/setup/step4">
+            <button type="submit" class="btn btn-primary" style="width:100%;">Skip &amp; Continue</button>
+        </form>
+    </div>
+
+    {% elif step == 5 %}
+    <div class="card" style="text-align:center;">
+        <h2>Setup Complete!</h2>
+        <p style="color:#666;margin-bottom:1.5rem;">Your help desk is ready. Here's what you can do next:</p>
+        <ul style="text-align:left;list-style:none;padding:0;">
+            <li style="padding:0.5rem 0;"><a href="/tickets/new">Create your first ticket</a></li>
+            <li style="padding:0.5rem 0;"><a href="/admin/invitations">Invite team members</a></li>
+            <li style="padding:0.5rem 0;"><a href="/admin/branding">Customize branding</a></li>
+            <li style="padding:0.5rem 0;"><a href="/admin/email-accounts">Configure email</a></li>
+            <li style="padding:0.5rem 0;"><a href="/knowledge-base/manage">Create knowledge base articles</a></li>
+        </ul>
+        <a href="/setup/complete" class="btn btn-primary" style="width:100%;margin-top:1rem;">Go to Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+<script>
+document.querySelectorAll('form[method="post"]').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        var token = document.cookie.split(';').map(function(c){return c.trim();}).find(function(c){return c.startsWith('csrftoken=');});
+        if (token) {
+            e.preventDefault();
+            var csrfValue = token.split('=')[1];
+            fetch(form.action || window.location.href, {
+                method: 'POST',
+                headers: {'x-csrftoken': csrfValue},
+                body: new FormData(form),
+                redirect: 'follow',
+                credentials: 'same-origin'
+            }).then(function(r) {
+                if (r.redirected) { window.location.href = r.url; }
+                else if (r.ok) { window.location.reload(); }
+                else { r.text().then(function(t){ alert('Error: ' + r.status); }); }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

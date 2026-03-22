@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Text Modules - Admin - DeskFlow{% endblock %}
+{% block title %}Text Modules - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Text Modules</h1>
 

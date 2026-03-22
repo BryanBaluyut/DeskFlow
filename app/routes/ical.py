@@ -1,8 +1,7 @@
 """iCal feed for pending reminders and escalated tickets."""
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -18,17 +17,17 @@ async def ical_feed(
 ):
     result = await db.execute(select(User).where(User.api_token == token))
     user = result.scalar_one_or_none()
-    if not user:
+    if not user or not user.active:
         return Response("Unauthorized", status_code=401)
 
     tickets = (await db.execute(
         select(Ticket).where(
             Ticket.assignee_id == user.id,
-            Ticket.status.in_([
-                TicketStatus.pending_reminder,
-                TicketStatus.open,
-                TicketStatus.in_progress,
-            ]),
+            or_(
+                Ticket.status == TicketStatus.pending_reminder,
+                Ticket.escalated == True,
+            ),
+            Ticket.status.notin_([TicketStatus.closed, TicketStatus.resolved]),
         )
     )).scalars().all()
 

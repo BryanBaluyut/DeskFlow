@@ -1,7 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - DeskFlow{% endblock %}
+{% block title %}Dashboard - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
+
+{% if onboarding %}
+<div class="card" style="background:#f0f7ff;border-left:4px solid #2563eb;margin-bottom:1.5rem;">
+    <h2 style="margin-top:0;">Getting Started</h2>
+    <p style="color:#666;">Complete these steps to set up your help desk:</p>
+    <ul style="list-style:none;padding:0;">
+        <li style="padding:0.4rem 0;">
+            {% if onboarding.has_groups %}&#10003;{% else %}&#9675;{% endif %}
+            <a href="/admin/groups">Create support groups</a>
+        </li>
+        <li style="padding:0.4rem 0;">
+            {% if onboarding.has_team %}&#10003;{% else %}&#9675;{% endif %}
+            <a href="/admin/invitations">Invite team members</a>
+        </li>
+        <li style="padding:0.4rem 0;">
+            {% if onboarding.has_tickets %}&#10003;{% else %}&#9675;{% endif %}
+            <a href="/tickets/new">Create your first ticket</a>
+        </li>
+        <li style="padding:0.4rem 0;">
+            {% if onboarding.has_kb %}&#10003;{% else %}&#9675;{% endif %}
+            <a href="/knowledge-base/manage">Write a knowledge base article</a>
+        </li>
+    </ul>
+</div>
+{% endif %}
 
 <div class="stats-row">
     <div class="stat-card">
