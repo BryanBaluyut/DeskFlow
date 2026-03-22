@@ -3,9 +3,9 @@ import csv
 import io
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
-from sqlalchemy import select, func, extract
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_agent

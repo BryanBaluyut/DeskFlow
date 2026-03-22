@@ -1,5 +1,4 @@
 """Live chat with WebSocket support."""
-import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -10,9 +9,9 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db, async_session
 from app.models import (
-    ChatSession, ChatMessage, Ticket, Article, TicketChannel, User, UserRole,
+    ChatSession, ChatMessage, Ticket, Article, TicketChannel, User,
 )
-from app.auth.dependencies import get_current_user, require_agent
+from app.auth.dependencies import require_agent
 from app.services.ticket_service import generate_ticket_number, record_history
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -162,17 +161,17 @@ async def websocket_chat(websocket: WebSocket, session_id: int):
 
 
 # --- Public chat widget endpoint ---
-public_chat_router = APIRouter(prefix="/widget", tags=["chat_widget"])
+public_chat_router = APIRouter(prefix="/chat", tags=["chat_widget"])
 
 
-@public_chat_router.get("/chat", response_class=HTMLResponse)
+@public_chat_router.get("/widget", response_class=HTMLResponse)
 async def chat_widget(request: Request, db: AsyncSession = Depends(get_db)):
     return request.app.state.templates.TemplateResponse("chat/widget.html", {
         "request": request,
     })
 
 
-@public_chat_router.post("/chat/start")
+@public_chat_router.post("/widget/start")
 async def start_chat(
     request: Request,
     db: AsyncSession = Depends(get_db),

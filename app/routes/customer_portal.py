@@ -9,8 +9,9 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.models import (
     Article, Ticket, TicketPriority, TicketStatus, TicketChannel,
-    User, UserRole, KBArticle, KBCategory, ArticleVisibility,
+    User, KBArticle, ArticleVisibility,
 )
+from app.schemas import PortalTicketCreateForm, PortalReplyForm, ProfileUpdateForm
 from app.services.ticket_service import generate_ticket_number, record_history
 
 router = APIRouter(prefix="/portal", tags=["customer_portal"])
@@ -69,12 +70,12 @@ async def portal_create_ticket(
     subject: str = Form(...), body: str = Form(""), priority: str = Form("medium"),
     db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    import bleach
+    form = PortalTicketCreateForm(subject=subject, body=body, priority=priority)
     number = await generate_ticket_number(db)
     ticket = Ticket(
-        number=number, subject=subject.strip(),
-        body_html=bleach.clean(body, strip=True),
-        priority=TicketPriority(priority), creator_id=user.id,
+        number=number, subject=form.subject,
+        body_html=form.body,
+        priority=TicketPriority(form.priority), creator_id=user.id,
         channel=TicketChannel.web,
     )
     db.add(ticket)
@@ -82,7 +83,7 @@ async def portal_create_ticket(
 
     article = Article(
         ticket_id=ticket.id, author_id=user.id,
-        body_html=bleach.clean(body, strip=True),
+        body_html=form.body,
         channel=TicketChannel.web, sender="customer",
     )
     db.add(article)
@@ -115,14 +116,14 @@ async def portal_reply(
     ticket_id: int, body: str = Form(...),
     db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    import bleach
+    form = PortalReplyForm(body=body)
     ticket = await db.get(Ticket, ticket_id)
     if not ticket or ticket.creator_id != user.id:
         raise HTTPException(404)
 
     article = Article(
         ticket_id=ticket_id, author_id=user.id,
-        body_html=bleach.clean(body, strip=True),
+        body_html=form.body,
         channel=TicketChannel.web, sender="customer",
     )
     db.add(article)
@@ -130,6 +131,15 @@ async def portal_reply(
     # Reopen if resolved
     if ticket.status in (TicketStatus.resolved, TicketStatus.pending_close):
         ticket.status = TicketStatus.open
+
+    # Notify assigned agent
+    if ticket.assignee_id:
+        from app.models import NotificationType
+        from app.services.ticket_service import create_notification
+        await create_notification(
+            db, ticket.assignee_id, NotificationType.ticket_update, ticket_id,
+            f"Customer replied on ticket #{ticket.number}",
+        )
 
     await db.commit()
     return RedirectResponse(url=f"/portal/tickets/{ticket_id}", status_code=302)
@@ -152,9 +162,10 @@ async def portal_update_profile(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    user.display_name = display_name
-    user.phone = phone or None
-    user.locale = locale
-    user.timezone = timezone
+    form = ProfileUpdateForm(display_name=display_name, phone=phone, locale=locale, timezone=timezone)
+    user.display_name = form.display_name
+    user.phone = form.phone or None
+    user.locale = form.locale
+    user.timezone = form.timezone
     await db.commit()
     return RedirectResponse(url="/portal/profile", status_code=302)

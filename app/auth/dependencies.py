@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import User, UserRole
@@ -14,7 +13,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     if not user_id:
         raise RedirectToLogin()
     user = await db.get(User, user_id)
-    if not user:
+    if not user or not user.active:
         request.session.clear()
         raise RedirectToLogin()
     return user

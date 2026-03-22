@@ -1,13 +1,49 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    depends_on:
+      - deskflow
+    restart: unless-stopped
+
   deskflow:
     build: .
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     env_file:
       - .env
     volumes:
       - deskflow-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: deskflow
+      POSTGRES_USER: deskflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-deskflow}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
   deskflow-data:
+  postgres-data:
+  caddy-data:
+  caddy-config:

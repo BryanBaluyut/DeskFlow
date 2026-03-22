@@ -5,11 +5,11 @@ A comprehensive, Docker-deployable IT help desk ticketing system with enterprise
 ## Quick Start
 
 ```bash
-cp .env.example .env   # Edit with your Entra ID + email credentials
-docker compose up -d    # Available at http://localhost:8000
+cp .env.example .env    # Edit with your credentials
+docker compose up -d    # Available at https://localhost
 ```
 
-The first user to log in becomes **Admin**.
+On first visit, a **setup wizard** guides you through creating an admin account, setting branding, and creating your first support group.
 
 ---
 
@@ -95,15 +95,25 @@ The first user to log in becomes **Admin**.
 - **Core Workflows** - dynamic forms (show/hide/require fields based on context)
 - **Custom object attributes** - add fields to tickets, users, organizations
 
-### Security & Privacy
-- Microsoft Entra ID (Azure AD) SSO via OIDC
+### Authentication
+- **Local email/password** - bcrypt-hashed, works without any SSO provider
+- **Microsoft Entra ID (Azure AD)** SSO via OIDC (optional)
+- Dual auth - both methods available simultaneously
+- **User invitations** - admin sends invite link, user sets password
+- **First-run setup wizard** - guided 5-step initial configuration
 - API token authentication (per-user, revocable)
-- Session management
-- Device tracking
+
+### Security & Privacy
+- **CSRF protection** - starlette-csrf with double-submit cookie pattern
+- **Rate limiting** - configurable per-endpoint via slowapi
+- **Security headers** - CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- **Input validation** - Pydantic schemas on all form and API inputs
+- **XSS prevention** - bleach HTML sanitization with allowlisted tags
+- **Automatic HTTPS** - Caddy reverse proxy with Let's Encrypt certificates
+- Session cookies with Secure flag, SameSite=Lax, 24h expiry
 - **GDPR Data Privacy** - right-to-forget deletion requests
 - Full audit trail on tickets
-- CSRF protection
-- Rate limiting ready
+- Device tracking
 
 ### Calendar
 - **iCal/CalDAV feed** (`/ical/feed?token=...`) for pending reminders and escalated tickets
@@ -126,24 +136,40 @@ The first user to log in becomes **Admin**.
 
 | Component | Technology |
 |---|---|
-| Backend | Python / FastAPI (async) |
+| Backend | Python 3.12 / FastAPI (fully async) |
 | Templates | Jinja2 (server-side rendered) |
-| Database | SQLite via aiosqlite (Docker volume) |
-| Auth | Microsoft Entra ID / OIDC (authlib) |
+| Database | PostgreSQL 16 (asyncpg) or SQLite (aiosqlite) |
+| Migrations | Alembic (async) |
+| Auth | Local (bcrypt) + Microsoft Entra ID / OIDC |
 | Email | IMAP polling + SMTP (multiple accounts) |
 | Chat | WebSocket (FastAPI native) |
 | Automation | asyncio background tasks |
-| Deployment | Single Docker container |
+| Logging | structlog (JSON / console) |
+| Reverse Proxy | Caddy 2 (automatic TLS) |
+| Deployment | Docker Compose (Caddy + App + PostgreSQL) |
 
-**No Redis, no Node.js, no separate database server required.**
+**No Redis, no Node.js, no build step required.**
 
-## Azure AD Setup
+## Production Deployment
+
+1. Set `APP_DOMAIN=helpdesk.yourdomain.com` in `.env`
+2. Point DNS to your server
+3. Ensure ports 80 and 443 are open
+4. `docker compose up -d`
+
+Caddy automatically provisions and renews Let's Encrypt certificates. For local development, `APP_DOMAIN=localhost` uses a self-signed certificate.
+
+## Azure AD Setup (Optional)
+
+DeskFlow works with local email/password authentication out of the box. To add Microsoft SSO:
 
 1. Azure Portal > App registrations > New registration
-2. Redirect URI: `http://yourhost:8000/auth/callback` (Web)
+2. Redirect URI: `https://yourhost/auth/callback` (Web)
 3. API permissions: `openid`, `email`, `profile`
 4. Create client secret
 5. Set `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_TENANT_ID` in `.env`
+
+Both local and SSO authentication can be active simultaneously.
 
 ## Configuration Reference
 
@@ -153,19 +179,27 @@ See `.env.example` for all configuration options.
 
 ```
 DeskFlow/
-├── docker-compose.yml          # Single-command deployment
-├── Dockerfile                  # Python 3.12 slim container
+├── docker-compose.yml          # Caddy + App + PostgreSQL
+├── Caddyfile                   # Reverse proxy with auto-TLS
+├── Dockerfile                  # Multi-stage Python 3.12 (non-root)
 ├── .env.example                # All configuration documented
+├── alembic/                    # Database migrations
 ├── app/
-│   ├── main.py                 # FastAPI app, lifespan, routers
+│   ├── main.py                 # FastAPI app, middleware, routers
 │   ├── config.py               # Pydantic settings
-│   ├── database.py             # SQLAlchemy async engine
+│   ├── database.py             # Async engine (PostgreSQL/SQLite)
 │   ├── models.py               # 30+ SQLAlchemy models
-│   ├── auth/                   # Entra ID OIDC + session deps
+│   ├── schemas.py              # Pydantic input validation
+│   ├── middleware.py            # Security headers, request ID
+│   ├── logging_config.py       # structlog configuration
+│   ├── rate_limit.py           # Shared slowapi limiter
+│   ├── auth/                   # Entra ID OIDC + local auth
 │   ├── routes/
-│   │   ├── auth.py             # Login/callback/logout
+│   │   ├── auth.py             # Login (local + SSO), invitations
+│   │   ├── setup.py            # First-run setup wizard
+│   │   ├── health.py           # Health check endpoint
 │   │   ├── tickets.py          # Full ticket CRUD + all actions
-│   │   ├── admin.py            # 20 admin management sections
+│   │   ├── admin.py            # Admin panel + user invitations
 │   │   ├── knowledge_base.py   # KB CRUD + public portal
 │   │   ├── api.py              # REST API endpoints
 │   │   ├── chat.py             # WebSocket live chat
@@ -178,16 +212,7 @@ DeskFlow/
 │   │   ├── automation.py       # Triggers, schedulers, SLA
 │   │   ├── email_inbound.py    # IMAP polling (multi-account)
 │   │   └── email_outbound.py   # SMTP notifications
-│   ├── templates/              # 50 Jinja2 templates
-│   │   ├── admin/              # 20 admin panel templates
-│   │   ├── kb/                 # Knowledge base templates
-│   │   ├── chat/               # Chat interface + widget
-│   │   ├── portal/             # Customer portal
-│   │   ├── forms/              # Web form templates
-│   │   └── reports/            # Reporting dashboards
-│   └── static/
-│       ├── style.css           # Full responsive CSS
-│       ├── app.js              # Bulk actions, shortcuts, text modules
-│       └── widget.js           # Embeddable chat widget
-└── 84 files total
+│   ├── templates/              # 55+ Jinja2 templates
+│   └── static/                 # CSS, JS (no build step)
+└── tests/                      # pytest test suite
 ```

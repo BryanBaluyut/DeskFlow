@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Macros - Admin - DeskFlow{% endblock %}
+{% block title %}Macros - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Macros</h1>
 

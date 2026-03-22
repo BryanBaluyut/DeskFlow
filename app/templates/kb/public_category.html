@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ category.name }} - {{ request.app.state.app_name|default('DeskFlow') }} Help Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; background: #f5f7fa; }
+        .header { background: #2563eb; color: #fff; padding: 1.5rem; }
+        .header a { color: #fff; text-decoration: none; font-size: 1.25rem; font-weight: bold; }
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .breadcrumb { margin-bottom: 1rem; font-size: 0.875rem; }
+        .breadcrumb a { color: #2563eb; text-decoration: none; }
+        .card { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .card h2 { margin-bottom: 1rem; }
+        .article-list { list-style: none; }
+        .article-list li { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+        .article-list li:last-child { border-bottom: none; }
+        .article-list a { color: #2563eb; text-decoration: none; }
+        .article-list a:hover { text-decoration: underline; }
+        .footer { text-align: center; padding: 2rem; color: #888; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <div class="header"><a href="/help">{{ request.app.state.app_name|default('DeskFlow') }} Help Center</a></div>
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/help">Home</a> &raquo; {{ category.name }}
+        </div>
+        <div class="card">
+            <h2>{{ category.name }}</h2>
+            {% if category.children %}
+            <h3>Subcategories</h3>
+            <ul class="article-list">
+                {% for child in category.children %}
+                <li><a href="/help/category/{{ child.id }}">{{ child.name }}</a></li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <h3>Articles</h3>
+            <ul class="article-list">
+                {% for article in articles %}
+                <li><a href="/help/article/{{ article.id }}">{{ article.title }}</a></li>
+                {% else %}
+                <li>No articles in this category.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="footer">Powered by {{ request.app.state.app_name|default('DeskFlow') }}</div>
+</body>
+</html>

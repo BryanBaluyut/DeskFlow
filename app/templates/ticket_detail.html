@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}#{{ ticket.number }}: {{ ticket.subject }} - DeskFlow{% endblock %}
+{% block title %}#{{ ticket.number }}: {{ ticket.subject }} - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <div class="ticket-header">
     <h1><span class="ticket-num">#{{ ticket.number }}</span> {{ ticket.subject }}</h1>
@@ -161,6 +161,19 @@
     {% endfor %}
 </div>
 {% endif %}
+{% endif %}
+
+<!-- Custom Fields -->
+{% if ticket.custom_fields %}
+<div class="card">
+    <h3>Custom Fields</h3>
+    <dl>
+    {% for key, value in ticket.custom_fields.items() %}
+        <dt>{{ key }}</dt>
+        <dd>{{ value }}</dd>
+    {% endfor %}
+    </dl>
+</div>
 {% endif %}
 
 <!-- Ticket Body -->

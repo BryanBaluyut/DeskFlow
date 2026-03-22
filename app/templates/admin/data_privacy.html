@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Data Privacy - Admin - DeskFlow{% endblock %}
+{% block title %}Data Privacy - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Data Privacy</h1>
 

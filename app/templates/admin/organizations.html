@@ -1,7 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Organizations - Admin - DeskFlow{% endblock %}
+{% block title %}Organizations - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Organizations</h1>
+
+{% if request.query_params.get('error') %}
+<div class="card" style="background:#fef2f2;border:1px solid #ef4444;color:#b91c1c;padding:0.75rem 1rem;margin-bottom:1rem;">
+    {{ request.query_params.get('error') }}
+</div>
+{% endif %}
 
 <div class="card">
     <table class="ticket-table">

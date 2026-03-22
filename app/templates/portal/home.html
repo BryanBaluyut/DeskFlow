@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Customer Portal - DeskFlow{% endblock %}
+{% block title %}Customer Portal - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Welcome, {{ user.display_name }}</h1>
 
@@ -13,8 +13,8 @@
             {% for ticket in tickets %}
             <tr>
                 <td>{{ ticket.number }}</td>
-                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.title }}</a></td>
-                <td><span class="badge">{{ ticket.status }}</span></td>
+                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.subject }}</a></td>
+                <td><span class="badge">{{ ticket.status.value|replace('_', ' ')|capitalize }}</span></td>
                 <td>{{ ticket.updated_at.strftime('%Y-%m-%d') if ticket.updated_at else '' }}</td>
             </tr>
             {% else %}
@@ -29,7 +29,7 @@
     <h2>Help Articles</h2>
     <ul class="article-list">
         {% for article in featured_articles %}
-        <li><a href="/kb/article/{{ article.id }}">{{ article.title }}</a></li>
+        <li><a href="/help/article/{{ article.id }}">{{ article.title }}</a></li>
         {% else %}
         <li>No articles available.</li>
         {% endfor %}

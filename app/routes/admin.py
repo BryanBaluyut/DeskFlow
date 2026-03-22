@@ -1,16 +1,25 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
+import json
+from datetime import datetime, timezone
+
+import bleach
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import require_admin, require_agent
+from app.auth.dependencies import require_admin
 from app.database import get_db
+from app.schemas import (
+    GroupCreateForm, OrganizationCreateForm, SLACreateForm,
+    TriggerCreateForm, MacroCreateForm, WebhookCreateForm,
+    TextModuleCreateForm, BrandingForm,
+)
 from app.models import (
-    User, UserRole, Group, Organization, Tag, SLA, Calendar, Trigger, TriggerEvent,
+    Ticket, User, UserRole, Group, Organization, SLA, Calendar, Trigger, TriggerEvent,
     Scheduler, Macro, Webhook, TextModule, TicketTemplate, Signature,
     ChecklistTemplate, ObjectAttribute, CoreWorkflow, SystemSetting,
-    EmailAccount, WebForm, TicketPriority, TicketStatus,
-    DataPrivacyTask, Overview,
+    EmailAccount, WebForm, TicketPriority, DataPrivacyTask, Overview,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -38,7 +47,13 @@ async def change_role(
     target = await db.get(User, user_id)
     if not target:
         raise HTTPException(404)
-    target.role = UserRole(role)
+    if target.id == user.id:
+        raise HTTPException(400, "Cannot change your own role")
+    try:
+        new_role = UserRole(role)
+    except ValueError:
+        raise HTTPException(422, f"Invalid role. Must be one of: {', '.join(e.value for e in UserRole)}")
+    target.role = new_role
     await db.commit()
     return RedirectResponse(url="/admin/", status_code=302)
 
@@ -49,21 +64,88 @@ async def toggle_vip(
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
     target = await db.get(User, user_id)
-    if target:
-        target.vip = not target.vip
-        await db.commit()
+    if not target:
+        raise HTTPException(404)
+    target.vip = not target.vip
+    await db.commit()
     return RedirectResponse(url="/admin/", status_code=302)
 
 
 @router.post("/users/{user_id}/deactivate")
 async def deactivate_user(
     user_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
     target = await db.get(User, user_id)
-    if target and target.id != user.id:
-        target.active = not target.active
-        await db.commit()
+    if not target:
+        raise HTTPException(404)
+    if target.id == user.id:
+        raise HTTPException(400, "Cannot deactivate yourself")
+    target.active = not target.active
+    await db.commit()
+    # If deactivating, invalidate their sessions by clearing session data
+    # (the get_current_user check will also catch this on next request)
+    return RedirectResponse(url="/admin/", status_code=302)
+
+
+@router.post("/users/{user_id}/out-of-office")
+async def set_out_of_office(
+    user_id: int,
+    out_of_office: str = Form("off"),
+    replacement_id: int | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    target = await db.get(User, user_id)
+    if not target:
+        raise HTTPException(404)
+
+    is_ooo = out_of_office in ("on", "true", "1", "yes")
+
+    if is_ooo and replacement_id:
+        if replacement_id == user_id:
+            raise HTTPException(400, "Cannot set self as replacement")
+        replacement = await db.get(User, replacement_id)
+        if not replacement:
+            raise HTTPException(404, "Replacement user not found")
+        if replacement.role == UserRole.customer:
+            raise HTTPException(400, "Replacement must be an agent or admin")
+
+    target.out_of_office = is_ooo
+    target.out_of_office_replacement_id = replacement_id if is_ooo else None
+    await db.commit()
+    await db.refresh(target)
+    return RedirectResponse(url="/admin/", status_code=302)
+
+
+@router.post("/users/create")
+async def create_user(
+    email: str = Form(...),
+    display_name: str = Form(...),
+    role: str = Form("customer"),
+    password: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    import bcrypt
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        return RedirectResponse(url="/admin/?error=Email+already+exists", status_code=302)
+
+    password_hash = None
+    if password:
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    new_user = User(
+        entra_oid=f"local-{email}",
+        email=email,
+        display_name=display_name,
+        role=UserRole(role),
+        password_hash=password_hash,
+    )
+    db.add(new_user)
+    await db.commit()
     return RedirectResponse(url="/admin/", status_code=302)
 
 
@@ -83,23 +165,37 @@ async def create_group(
     email_address: str = Form(""), signature_id: int | None = Form(None),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
+    form = GroupCreateForm(name=name, display_name=display_name, email_address=email_address, signature_id=signature_id)
+    normalized_name = form.name.strip().lower().replace(" ", "_")
+    existing = await db.execute(select(Group).where(Group.name == normalized_name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(422, f"Group '{normalized_name}' already exists")
     group = Group(
-        name=name.strip().lower().replace(" ", "_"),
-        display_name=display_name.strip() or name.strip(),
-        email_address=email_address.strip() or None,
-        signature_id=signature_id,
+        name=normalized_name,
+        display_name=form.display_name.strip() or form.name.strip(),
+        email_address=form.email_address.strip() or None,
+        signature_id=form.signature_id,
     )
     db.add(group)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        return RedirectResponse(url="/admin/groups?error=Name+already+exists", status_code=302)
     return RedirectResponse(url="/admin/groups", status_code=302)
 
 
 @router.post("/groups/{group_id}/delete")
 async def delete_group(group_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
     group = await db.get(Group, group_id)
-    if group:
-        await db.delete(group)
-        await db.commit()
+    if not group:
+        raise HTTPException(404)
+    # Unassign tickets from this group before deletion
+    result = await db.execute(select(Ticket).where(Ticket.group_id == group_id))
+    for ticket in result.scalars().all():
+        ticket.group_id = None
+    await db.delete(group)
+    await db.commit()
     return RedirectResponse(url="/admin/groups", status_code=302)
 
 
@@ -119,11 +215,29 @@ async def create_organization(
     note: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
+    form = OrganizationCreateForm(name=name, domain=domain, domain_assignment=domain_assignment, shared=shared, note=note)
+    existing = await db.execute(select(Organization).where(Organization.name == form.name.strip()))
+    if existing.scalar_one_or_none():
+        raise HTTPException(422, f"Organization '{form.name.strip()}' already exists")
     org = Organization(
-        name=name.strip(), domain=domain.strip() or None,
-        domain_assignment=domain_assignment, shared=shared, note=note,
+        name=form.name.strip(), domain=form.domain.strip() or None,
+        domain_assignment=form.domain_assignment, shared=form.shared, note=form.note,
     )
     db.add(org)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        return RedirectResponse(url="/admin/organizations?error=Name+already+exists", status_code=302)
+    return RedirectResponse(url="/admin/organizations", status_code=302)
+
+
+@router.post("/organizations/{org_id}/delete")
+async def delete_organization(org_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    org = await db.get(Organization, org_id)
+    if not org:
+        raise HTTPException(404)
+    await db.delete(org)
     await db.commit()
     return RedirectResponse(url="/admin/organizations", status_code=302)
 
@@ -147,10 +261,15 @@ async def create_sla(
     calendar_id: int | None = Form(None),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    sla = SLA(
+    form = SLACreateForm(
         name=name, first_response_time=first_response_time,
         update_time=update_time, solution_time=solution_time,
         calendar_id=calendar_id,
+    )
+    sla = SLA(
+        name=form.name, first_response_time=form.first_response_time,
+        update_time=form.update_time, solution_time=form.solution_time,
+        calendar_id=form.calendar_id,
     )
     db.add(sla)
     await db.commit()
@@ -193,10 +312,19 @@ async def create_trigger(
     conditions: str = Form("{}"), actions: str = Form("[]"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
+    form = TriggerCreateForm(name=name, event=event, conditions=conditions, actions=actions)
+    try:
+        parsed_conditions = json.loads(form.conditions) if form.conditions else {}
+        parsed_actions = json.loads(form.actions) if form.actions else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in conditions or actions")
+    try:
+        event = TriggerEvent(form.event)
+    except ValueError:
+        raise HTTPException(422, f"Invalid event. Must be one of: {', '.join(e.value for e in TriggerEvent)}")
     trigger = Trigger(
-        name=name, event=TriggerEvent(event),
-        conditions=json.loads(conditions), actions=json.loads(actions),
+        name=form.name, event=event,
+        conditions=parsed_conditions, actions=parsed_actions,
     )
     db.add(trigger)
     await db.commit()
@@ -227,10 +355,16 @@ async def create_scheduler(
     conditions: str = Form("{}"), actions: str = Form("[]"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
+    if interval_minutes < 1:
+        raise HTTPException(422, "interval_minutes must be at least 1")
+    try:
+        parsed_conditions = json.loads(conditions) if conditions else {}
+        parsed_actions = json.loads(actions) if actions else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in conditions or actions")
     sched = Scheduler(
         name=name, interval_minutes=interval_minutes,
-        conditions=json.loads(conditions), actions=json.loads(actions),
+        conditions=parsed_conditions, actions=parsed_actions,
     )
     db.add(sched)
     await db.commit()
@@ -251,8 +385,12 @@ async def create_macro(
     name: str = Form(...), actions: str = Form("[]"), note: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
-    macro = Macro(name=name, actions=json.loads(actions), note=note)
+    form = MacroCreateForm(name=name, actions=actions, note=note)
+    try:
+        parsed_actions = json.loads(form.actions) if form.actions else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in actions")
+    macro = Macro(name=form.name, actions=parsed_actions, note=form.note)
     db.add(macro)
     await db.commit()
     return RedirectResponse(url="/admin/macros", status_code=302)
@@ -273,7 +411,10 @@ async def create_webhook(
     signature_token: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    wh = Webhook(name=name, endpoint=endpoint, signature_token=signature_token or None)
+    form = WebhookCreateForm(name=name, endpoint=endpoint, signature_token=signature_token)
+    if not form.endpoint.startswith(("http://", "https://")):
+        raise HTTPException(422, "Webhook endpoint must start with http:// or https://")
+    wh = Webhook(name=form.name, endpoint=form.endpoint, signature_token=form.signature_token or None)
     db.add(wh)
     await db.commit()
     return RedirectResponse(url="/admin/webhooks", status_code=302)
@@ -293,7 +434,13 @@ async def create_text_module(
     name: str = Form(...), keyword: str = Form(...), content: str = Form(...),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    tm = TextModule(name=name, keyword=keyword, content=content)
+    form = TextModuleCreateForm(name=name, keyword=keyword, content=content)
+    SAFE_TAGS = ["p", "br", "b", "i", "u", "a", "ul", "ol", "li", "pre", "code", "strong", "em", "blockquote"]
+    sanitized_content = bleach.clean(form.content, tags=SAFE_TAGS, strip=True)
+    existing = await db.execute(select(TextModule).where(TextModule.keyword == form.keyword))
+    if existing.scalar_one_or_none():
+        raise HTTPException(422, f"Keyword '{form.keyword}' already exists")
+    tm = TextModule(name=form.name, keyword=form.keyword, content=sanitized_content)
     db.add(tm)
     await db.commit()
     return RedirectResponse(url="/admin/text-modules", status_code=302)
@@ -314,7 +461,11 @@ async def create_ticket_template(
     priority: str = Form("medium"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    tt = TicketTemplate(name=name, subject=subject, body=body, priority=TicketPriority(priority))
+    try:
+        prio = TicketPriority(priority)
+    except ValueError:
+        raise HTTPException(422, f"Invalid priority. Must be one of: {', '.join(e.value for e in TicketPriority)}")
+    tt = TicketTemplate(name=name, subject=subject, body=body, priority=prio)
     db.add(tt)
     await db.commit()
     return RedirectResponse(url="/admin/ticket-templates", status_code=302)
@@ -354,8 +505,11 @@ async def create_checklist_template(
     name: str = Form(...), items: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
-    ct = ChecklistTemplate(name=name, items=json.loads(items) if items else [])
+    try:
+        parsed_items = json.loads(items) if items else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in items")
+    ct = ChecklistTemplate(name=name, items=parsed_items)
     db.add(ct)
     await db.commit()
     return RedirectResponse(url="/admin/checklist-templates", status_code=302)
@@ -377,13 +531,52 @@ async def create_object_attribute(
     required: bool = Form(False), data_options: str = Form("{}"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
+    # Validate object_type
+    if object_type not in ("ticket", "user", "organization"):
+        raise HTTPException(422, "object_type must be ticket, user, or organization")
+    # Validate data_type
+    valid_types = ("input", "select", "boolean", "date", "datetime", "integer", "textarea")
+    if data_type not in valid_types:
+        raise HTTPException(422, f"data_type must be one of: {', '.join(valid_types)}")
+    # Validate name is not empty
+    if not name.strip():
+        raise HTTPException(422, "name must not be empty")
+    try:
+        parsed_options = json.loads(data_options) if data_options else {}
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in data_options")
+    # Check for duplicate name within the same object_type
+    existing = await db.execute(
+        select(ObjectAttribute).where(
+            ObjectAttribute.object_type == object_type,
+            ObjectAttribute.name == name.strip(),
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(422, f"Attribute '{name.strip()}' already exists for {object_type}")
     attr = ObjectAttribute(
-        object_type=object_type, name=name, display_name=display_name,
+        object_type=object_type, name=name.strip(), display_name=display_name.strip(),
         data_type=data_type, required=required,
-        data_options=json.loads(data_options) if data_options else {},
+        data_options=parsed_options,
     )
     db.add(attr)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        return RedirectResponse(url="/admin/object-attributes?error=Name+already+exists", status_code=302)
+    return RedirectResponse(url="/admin/object-attributes", status_code=302)
+
+
+@router.post("/object-attributes/{attr_id}/delete")
+async def delete_object_attribute(
+    attr_id: int,
+    db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
+):
+    attr = await db.get(ObjectAttribute, attr_id)
+    if not attr:
+        raise HTTPException(404)
+    await db.delete(attr)
     await db.commit()
     return RedirectResponse(url="/admin/object-attributes", status_code=302)
 
@@ -403,10 +596,14 @@ async def create_core_workflow(
     conditions: str = Form("{}"), actions: str = Form("[]"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
+    try:
+        parsed_conditions = json.loads(conditions) if conditions else {}
+        parsed_actions = json.loads(actions) if actions else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in conditions or actions")
     wf = CoreWorkflow(
         name=name, object_type=object_type,
-        conditions=json.loads(conditions), actions=json.loads(actions),
+        conditions=parsed_conditions, actions=parsed_actions,
     )
     db.add(wf)
     await db.commit()
@@ -430,17 +627,98 @@ async def create_overview(
     roles: str = Form("[]"),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    import json
+    try:
+        parsed_conditions = json.loads(conditions) if conditions else {}
+        parsed_columns = json.loads(columns) if columns else ["number", "subject", "status", "priority", "assignee", "updated_at"]
+        parsed_roles = json.loads(roles) if roles else []
+    except json.JSONDecodeError:
+        raise HTTPException(422, "Invalid JSON in conditions, columns, or roles")
     ov = Overview(
         name=name, link=link or name.lower().replace(" ", "-"),
-        conditions=json.loads(conditions), order_by=order_by,
+        conditions=parsed_conditions, order_by=order_by,
         order_direction=order_direction,
-        columns=json.loads(columns) if columns else ["number", "subject", "status", "priority", "assignee", "updated_at"],
-        roles=json.loads(roles) if roles else [],
+        columns=parsed_columns,
+        roles=parsed_roles,
     )
     db.add(ov)
     await db.commit()
     return RedirectResponse(url="/admin/overviews", status_code=302)
+
+
+@router.post("/overviews/{overview_id}/delete")
+async def delete_overview(overview_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    obj = await db.get(Overview, overview_id)
+    if not obj:
+        raise HTTPException(404)
+    await db.delete(obj)
+    await db.commit()
+    return RedirectResponse(url="/admin/overviews", status_code=302)
+
+
+# --- Delete routes for triggers, schedulers, SLAs, webhooks, macros ---
+
+
+@router.post("/triggers/{trigger_id}/delete")
+async def delete_trigger(trigger_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    obj = await db.get(Trigger, trigger_id)
+    if not obj:
+        raise HTTPException(404)
+    await db.delete(obj)
+    await db.commit()
+    return RedirectResponse(url="/admin/triggers", status_code=302)
+
+
+@router.post("/schedulers/{scheduler_id}/delete")
+async def delete_scheduler(scheduler_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    obj = await db.get(Scheduler, scheduler_id)
+    if not obj:
+        raise HTTPException(404)
+    await db.delete(obj)
+    await db.commit()
+    return RedirectResponse(url="/admin/schedulers", status_code=302)
+
+
+@router.post("/schedulers/{scheduler_id}/toggle")
+async def toggle_scheduler(scheduler_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    sched = await db.get(Scheduler, scheduler_id)
+    if sched:
+        sched.active = not sched.active
+        await db.commit()
+    return RedirectResponse(url="/admin/schedulers", status_code=302)
+
+
+@router.post("/slas/{sla_id}/delete")
+async def delete_sla(sla_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    sla = await db.get(SLA, sla_id)
+    if not sla:
+        raise HTTPException(404)
+    # Unassign from tickets
+    result = await db.execute(select(Ticket).where(Ticket.sla_id == sla_id))
+    for ticket in result.scalars().all():
+        ticket.sla_id = None
+    await db.delete(sla)
+    await db.commit()
+    return RedirectResponse(url="/admin/slas", status_code=302)
+
+
+@router.post("/webhooks/{webhook_id}/delete")
+async def delete_webhook(webhook_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    obj = await db.get(Webhook, webhook_id)
+    if not obj:
+        raise HTTPException(404)
+    await db.delete(obj)
+    await db.commit()
+    return RedirectResponse(url="/admin/webhooks", status_code=302)
+
+
+@router.post("/macros/{macro_id}/delete")
+async def delete_macro(macro_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    obj = await db.get(Macro, macro_id)
+    if not obj:
+        raise HTTPException(404)
+    await db.delete(obj)
+    await db.commit()
+    return RedirectResponse(url="/admin/macros", status_code=302)
 
 
 # --- Email Accounts ---
@@ -487,6 +765,7 @@ async def web_forms_list(request: Request, db: AsyncSession = Depends(get_db), u
 
 @router.post("/web-forms")
 async def create_web_form(
+    request: Request,
     name: str = Form(...), title: str = Form("Contact Us"),
     group_id: int | None = Form(None),
     success_message: str = Form("Thank you! Your request has been submitted."),
@@ -530,7 +809,8 @@ async def save_branding(
     custom_css: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
-    for key, value in [("product_name", product_name), ("primary_color", primary_color), ("custom_css", custom_css)]:
+    form = BrandingForm(product_name=product_name, primary_color=primary_color, custom_css=custom_css)
+    for key, value in [("product_name", form.product_name), ("primary_color", form.primary_color), ("custom_css", form.custom_css)]:
         result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
         setting = result.scalar_one_or_none()
         if setting:
@@ -538,6 +818,10 @@ async def save_branding(
         else:
             db.add(SystemSetting(key=key, value=value))
     await db.commit()
+    # Update cached branding
+    request.app.state.app_name = form.product_name
+    request.app.state.primary_color = form.primary_color
+    request.app.state.custom_css = form.custom_css
     return RedirectResponse(url="/admin/branding", status_code=302)
 
 
@@ -566,3 +850,50 @@ async def create_privacy_deletion(
     db.add(task)
     await db.commit()
     return RedirectResponse(url="/admin/data-privacy", status_code=302)
+
+
+# --- Invitations ---
+@router.get("/invitations", response_class=HTMLResponse)
+async def invitations_list(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_admin)):
+    from app.models import Invitation
+    invitations = (await db.execute(
+        select(Invitation).order_by(Invitation.created_at.desc())
+    )).scalars().all()
+    groups = (await db.execute(select(Group))).scalars().all()
+    orgs = (await db.execute(select(Organization))).scalars().all()
+    return request.app.state.templates.TemplateResponse("admin/invitations.html", {
+        "request": request, "user": user, "invitations": invitations,
+        "groups": groups, "organizations": orgs, "roles": list(UserRole),
+        "now": datetime.now(timezone.utc),
+    })
+
+
+@router.post("/invitations")
+async def create_invitation(
+    email: str = Form(...),
+    role: str = Form("customer"),
+    group_id: int | None = Form(None),
+    organization_id: int | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    import secrets
+    from datetime import timedelta
+    from app.models import Invitation
+    from app.config import settings
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.INVITE_EXPIRY_DAYS)
+
+    invitation = Invitation(
+        email=email,
+        role=UserRole(role),
+        group_id=group_id,
+        organization_id=organization_id,
+        token=token,
+        invited_by_id=user.id,
+        expires_at=expires_at,
+    )
+    db.add(invitation)
+    await db.commit()
+    return RedirectResponse(url="/admin/invitations", status_code=302)

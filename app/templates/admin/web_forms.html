@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Web Forms - Admin - DeskFlow{% endblock %}
+{% block title %}Web Forms - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Web Forms</h1>
 

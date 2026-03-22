@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session
 from app.models import (
     Ticket, TicketStatus, TicketPriority, Article, Trigger, TriggerEvent,
-    Scheduler, Webhook, SLA, Notification, NotificationType, User,
+    Scheduler, Webhook, Notification, NotificationType,
 )
 
 log = logging.getLogger(__name__)
@@ -45,7 +45,9 @@ def _match_conditions(ticket: Ticket, conditions: dict) -> bool:
 async def _apply_actions(db: AsyncSession, ticket: Ticket, actions: list):
     """Apply trigger/scheduler/macro actions to a ticket."""
     for action in actions:
-        action_type = action.get("type", action.get("field", ""))
+        action_type = action.get("type") or action.get("field") or action.get("action", "")
+        # Normalize aliases (set_priority → priority, etc.)
+        action_type = action_type.replace("set_", "")
         value = action.get("value")
 
         if action_type == "status":

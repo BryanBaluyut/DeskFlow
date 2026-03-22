@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Help Center - DeskFlow</title>
+    <title>Help Center - {{ request.app.state.app_name|default('DeskFlow') }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; background: #f5f7fa; }
@@ -27,12 +27,12 @@
 </head>
 <body>
     <div class="header">
-        <h1>DeskFlow Help Center</h1>
+        <h1>{{ request.app.state.app_name|default('DeskFlow') }} Help Center</h1>
         <p>Find answers to your questions</p>
     </div>
     <div class="container">
         <div class="search-box">
-            <form action="/kb/search" method="get">
+            <form action="/help/search" method="get">
                 <input type="text" name="q" placeholder="Search for help...">
                 <button type="submit">Search</button>
             </form>
@@ -41,13 +41,13 @@
             <h2>Categories</h2>
             <ul class="category-list">
                 {% for category in categories %}
-                <li><a href="/kb/category/{{ category.id }}">{{ category.name }}</a></li>
+                <li><a href="/help/category/{{ category.id }}">{{ category.name }}</a></li>
                 {% else %}
                 <li>No categories available.</li>
                 {% endfor %}
             </ul>
         </div>
     </div>
-    <div class="footer">Powered by DeskFlow</div>
+    <div class="footer">Powered by {{ request.app.state.app_name|default('DeskFlow') }}</div>
 </body>
 </html>

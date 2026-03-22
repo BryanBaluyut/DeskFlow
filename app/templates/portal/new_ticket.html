@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}New Ticket - DeskFlow{% endblock %}
+{% block title %}New Ticket - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Create a Ticket</h1>
 <div class="card">
     <form action="/portal/tickets/new" method="post">
         <div class="form-group">
-            <label for="title">Subject</label>
-            <input type="text" id="title" name="title" required>
+            <label for="subject">Subject</label>
+            <input type="text" id="subject" name="subject" required>
         </div>
         <div class="form-group">
             <label for="body">Description</label>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search - DeskFlow Help Center</title>
+    <title>Search - {{ request.app.state.app_name|default('DeskFlow') }} Help Center</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; background: #f5f7fa; }
@@ -24,20 +24,20 @@
     </style>
 </head>
 <body>
-    <div class="header"><a href="/kb">DeskFlow Help Center</a></div>
+    <div class="header"><a href="/help">{{ request.app.state.app_name|default('DeskFlow') }} Help Center</a></div>
     <div class="container">
         <div class="search-box">
-            <form action="/kb/search" method="get">
-                <input type="text" name="q" placeholder="Search for help..." value="{{ q|default('') }}">
+            <form action="/help/search" method="get">
+                <input type="text" name="q" placeholder="Search for help..." value="{{ query|default('') }}">
                 <button type="submit">Search</button>
             </form>
         </div>
-        {% if results is defined %}
+        {% if articles is defined %}
         <div class="card">
-            <h2>Results{% if q %} for "{{ q }}"{% endif %}</h2>
+            <h2>Results{% if query %} for "{{ query }}"{% endif %}</h2>
             <ul class="result-list">
-                {% for article in results %}
-                <li><a href="/kb/article/{{ article.id }}">{{ article.title }}</a></li>
+                {% for article in articles %}
+                <li><a href="/help/article/{{ article.id }}">{{ article.title }}</a></li>
                 {% else %}
                 <li>No results found.</li>
                 {% endfor %}
@@ -45,6 +45,6 @@
         </div>
         {% endif %}
     </div>
-    <div class="footer">Powered by DeskFlow</div>
+    <div class="footer">Powered by {{ request.app.state.app_name|default('DeskFlow') }}</div>
 </body>
 </html>

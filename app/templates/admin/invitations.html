@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Invitations - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
+{% block content %}
+<h1>User Invitations</h1>
+<div class="card">
+    <h2>Send Invitation</h2>
+    <form method="post" action="/admin/invitations" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="flex:1;min-width:200px;">
+            <label for="inv_email">Email</label>
+            <input type="email" id="inv_email" name="email" required>
+        </div>
+        <div class="form-group" style="min-width:120px;">
+            <label for="inv_role">Role</label>
+            <select id="inv_role" name="role">
+                {% for r in roles %}
+                <option value="{{ r.value }}">{{ r.value|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="min-width:150px;">
+            <label for="inv_group">Group</label>
+            <select id="inv_group" name="group_id">
+                <option value="">None</option>
+                {% for g in groups %}
+                <option value="{{ g.id }}">{{ g.display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="min-width:150px;">
+            <label for="inv_org">Organization</label>
+            <select id="inv_org" name="organization_id">
+                <option value="">None</option>
+                {% for o in organizations %}
+                <option value="{{ o.id }}">{{ o.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Send Invite</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Pending Invitations</h2>
+    <table class="ticket-table">
+        <thead>
+            <tr><th>Email</th><th>Role</th><th>Status</th><th>Expires</th><th>Invite Link</th></tr>
+        </thead>
+        <tbody>
+            {% for inv in invitations %}
+            <tr>
+                <td>{{ inv.email }}</td>
+                <td>{{ inv.role.value|capitalize }}</td>
+                <td>
+                    {% if inv.accepted %}
+                    <span class="badge" style="background:#4a4;">Accepted</span>
+                    {% elif inv.expires_at < now %}
+                    <span class="badge" style="background:#a44;">Expired</span>
+                    {% else %}
+                    <span class="badge" style="background:#fa0;">Pending</span>
+                    {% endif %}
+                </td>
+                <td>{{ inv.expires_at.strftime('%Y-%m-%d') if inv.expires_at else '' }}</td>
+                <td>
+                    {% if not inv.accepted %}
+                    <input type="text" value="{{ request.base_url }}auth/invite/{{ inv.token }}" readonly style="width:300px;font-size:0.8rem;" onclick="this.select()">
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No invitations yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
