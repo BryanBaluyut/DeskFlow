@@ -274,7 +274,7 @@ async def add_article(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    ticket = await db.get(Ticket, ticket_id)
+    ticket = await db.get(Ticket, ticket_id, options=[selectinload(Ticket.creator)])
     if not ticket:
         raise HTTPException(404)
     if user.role == UserRole.customer and ticket.creator_id != user.id:
@@ -294,7 +294,7 @@ async def add_article(
     await record_history(db, ticket_id, user.id, "article_added")
 
     if not article.is_internal:
-        await send_comment_notification(ticket, article, user)
+        await send_comment_notification(ticket, article, user, db=db)
 
     await notify_mentions(db, ticket_id, body, user.id)
     await db.commit()

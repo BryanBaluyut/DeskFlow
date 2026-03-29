@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import async_session
 from app.models import (
-    Article, EmailAccount, Ticket, TicketChannel, TicketStatus, User, UserRole,
+    Article, EmailAccount, NotificationType,
+    Ticket, TicketChannel, TicketStatus, User, UserRole,
 )
-from app.services.ticket_service import generate_ticket_number
+from app.services.ticket_service import generate_ticket_number, create_notification
+from app.services.email_outbound import send_comment_notification
 
 log = logging.getLogger(__name__)
 
@@ -104,6 +106,18 @@ async def process_message(raw_bytes: bytes, group_id: int | None = None):
                 db.add(article)
                 if ticket.status in (TicketStatus.resolved, TicketStatus.pending_close):
                     ticket.status = TicketStatus.open
+                await db.flush()
+
+                # Notify assigned agent of customer email reply
+                if ticket.assignee_id:
+                    await create_notification(
+                        db, ticket.assignee_id, NotificationType.ticket_update,
+                        ticket.id,
+                        f"Customer {user.display_name} replied via email on ticket #{ticket.number}",
+                        article_id=article.id,
+                    )
+                    await send_comment_notification(ticket, article, user, db=db)
+
                 await db.commit()
                 log.info("Added email article to ticket #%s", ticket.number)
                 return
@@ -144,8 +158,12 @@ async def poll_imap():
             # Poll globally configured account
             if settings.IMAP_HOST and settings.IMAP_USER:
                 await _poll_account(
-                    settings.IMAP_HOST, settings.IMAP_PORT,
-                    settings.IMAP_USER, settings.IMAP_PASSWORD,
+                    host=settings.IMAP_HOST,
+                    port=settings.IMAP_PORT,
+                    user=settings.IMAP_USER,
+                    password=settings.IMAP_PASSWORD,
+                    email_address=settings.IMAP_USER,
+                    auth_type=settings.EMAIL_AUTH_TYPE,
                     group_id=None,
                 )
 
@@ -159,8 +177,12 @@ async def poll_imap():
                 )
                 for account in result.scalars().all():
                     await _poll_account(
-                        account.imap_host, account.imap_port,
-                        account.imap_user, account.imap_password,
+                        host=account.imap_host,
+                        port=account.imap_port,
+                        user=account.imap_user,
+                        password=account.imap_password,
+                        email_address=account.email_address,
+                        auth_type=getattr(account, "auth_type", "basic"),
                         group_id=account.group_id,
                     )
                     account.last_poll_at = __import__('datetime').datetime.now(__import__('datetime').timezone.utc)
@@ -172,14 +194,32 @@ async def poll_imap():
         await asyncio.sleep(settings.EMAIL_POLL_INTERVAL)
 
 
-async def _poll_account(host: str, port: int, user: str, password: str, group_id: int | None):
-    if not host or not user:
+async def _imap_authenticate(client, user: str, password: str, email_address: str, auth_type: str):
+    """Authenticate IMAP client using basic or OAuth2."""
+    if auth_type == "oauth2":
+        from app.services.email_oauth import get_oauth2_token, EmailOAuthError
+        try:
+            token = await get_oauth2_token(email_address)
+            await client.xoauth2(email_address, token.encode())
+        except EmailOAuthError:
+            log.exception("OAuth2 IMAP auth failed for %s", email_address)
+            raise
+    else:
+        await client.login(user, password)
+
+
+async def _poll_account(
+    host: str, port: int, user: str, password: str,
+    email_address: str, auth_type: str = "basic",
+    group_id: int | None = None,
+):
+    if not host or not (user or email_address):
         return
     try:
         import aioimaplib
         client = aioimaplib.IMAP4_SSL(host=host, port=port)
         await client.wait_hello_from_server()
-        await client.login(user, password)
+        await _imap_authenticate(client, user, password, email_address, auth_type)
         await client.select("INBOX")
 
         _, data = await client.search("UNSEEN")
@@ -195,4 +235,4 @@ async def _poll_account(host: str, port: int, user: str, password: str, group_id
 
         await client.logout()
     except Exception:
-        log.exception("IMAP poll error for %s@%s", user, host)
+        log.exception("IMAP poll error for %s@%s", email_address, host)

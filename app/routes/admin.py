@@ -457,6 +457,7 @@ async def email_accounts_list(request: Request, db: AsyncSession = Depends(get_d
 async def create_email_account(
     name: str = Form(...), email_address: str = Form(...),
     group_id: int | None = Form(None),
+    auth_type: str = Form("basic"),
     imap_host: str = Form(""), imap_port: int = Form(993),
     imap_user: str = Form(""), imap_password: str = Form(""),
     smtp_host: str = Form(""), smtp_port: int = Form(587),
@@ -465,6 +466,7 @@ async def create_email_account(
 ):
     acc = EmailAccount(
         name=name, email_address=email_address, group_id=group_id,
+        auth_type=auth_type if auth_type in ("basic", "oauth2") else "basic",
         imap_host=imap_host or None, imap_port=imap_port,
         imap_user=imap_user or None, imap_password=imap_password or None,
         smtp_host=smtp_host or None, smtp_port=smtp_port,

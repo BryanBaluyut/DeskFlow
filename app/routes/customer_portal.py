@@ -10,8 +10,10 @@ from app.database import get_db
 from app.models import (
     Article, Ticket, TicketPriority, TicketStatus, TicketChannel,
     User, UserRole, KBArticle, KBCategory, ArticleVisibility,
+    NotificationType,
 )
-from app.services.ticket_service import generate_ticket_number, record_history
+from app.services.ticket_service import generate_ticket_number, record_history, create_notification
+from app.services.email_outbound import send_comment_notification
 
 router = APIRouter(prefix="/portal", tags=["customer_portal"])
 
@@ -126,10 +128,21 @@ async def portal_reply(
         channel=TicketChannel.web, sender="customer",
     )
     db.add(article)
+    await db.flush()
 
     # Reopen if resolved
     if ticket.status in (TicketStatus.resolved, TicketStatus.pending_close):
         ticket.status = TicketStatus.open
+
+    # Notify assigned agent
+    if ticket.assignee_id:
+        await create_notification(
+            db, ticket.assignee_id, NotificationType.ticket_update,
+            ticket_id,
+            f"Customer {user.display_name} replied on ticket #{ticket.number}",
+            article_id=article.id,
+        )
+        await send_comment_notification(ticket, article, user, db=db)
 
     await db.commit()
     return RedirectResponse(url=f"/portal/tickets/{ticket_id}", status_code=302)

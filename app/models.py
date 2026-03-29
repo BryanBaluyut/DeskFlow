@@ -771,6 +771,7 @@ class EmailAccount(Base):
     name = Column(String(255), nullable=False)
     email_address = Column(String(320), nullable=False)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    auth_type = Column(String(20), default="basic")  # "basic" or "oauth2"
 
     # Inbound
     imap_host = Column(String(255), nullable=True)
@@ -790,6 +791,8 @@ class EmailAccount(Base):
     last_poll_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=_utcnow)
     updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    group = relationship("Group", foreign_keys=[group_id])
 
 
 # ---------------------------------------------------------------------------

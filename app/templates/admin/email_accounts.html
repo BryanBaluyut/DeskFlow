@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Email Accounts - Admin - DeskFlow{% endblock %}
+{% block title %}Email Accounts - Admin - {{ request.app.state.app_name|default('DeskFlow') }}{% endblock %}
 {% block content %}
 <h1>Email Accounts</h1>
 
 <div class="card">
     <table class="ticket-table">
         <thead>
-            <tr><th>Name</th><th>Email</th><th>Group</th><th>Actions</th></tr>
+            <tr><th>Name</th><th>Email</th><th>Auth</th><th>Group</th><th>Actions</th></tr>
         </thead>
         <tbody>
-            {% for e in email_accounts|default([]) %}
+            {% for e in accounts|default([]) %}
             <tr>
                 <td>{{ e.name }}</td>
                 <td>{{ e.email_address }}</td>
-                <td>{{ e.group_id or '-' }}</td>
+                <td>{{ e.auth_type|default('basic') }}</td>
+                <td>{{ e.group.name if e.group else '-' }}</td>
                 <td>
                     <form method="post" action="/admin/email-accounts/{{ e.id }}/delete" class="inline-form">
                         <button type="submit" class="btn btn-small">Delete</button>
@@ -27,7 +28,7 @@
 
 <div class="card">
     <h2>Add New Email Account</h2>
-    <form method="post" action="/admin/email-accounts">
+    <form method="post" action="/admin/email-accounts" id="email-account-form">
         <div class="form-group">
             <label>Name</label>
             <input type="text" name="name" required>
@@ -45,41 +46,69 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="form-group">
+            <label>Authentication Type</label>
+            <select name="auth_type" id="auth-type-select">
+                <option value="basic">Basic (Username/Password)</option>
+                <option value="oauth2">OAuth2 (Microsoft 365)</option>
+            </select>
+            <small id="oauth2-hint" style="display:none;color:#666;">
+                OAuth2 uses the global Entra ID app registration (ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_TENANT_ID).
+                Ensure the app has IMAP.AccessAsApp and SMTP.SendAsApp permissions with admin consent.
+            </small>
+        </div>
         <h3>IMAP Settings</h3>
         <div class="form-group">
             <label>IMAP Host</label>
-            <input type="text" name="imap_host">
+            <input type="text" name="imap_host" value="outlook.office365.com">
         </div>
         <div class="form-group">
             <label>IMAP Port</label>
             <input type="number" name="imap_port" value="993">
         </div>
-        <div class="form-group">
+        <div class="form-group credential-field">
             <label>IMAP Username</label>
-            <input type="text" name="imap_username">
+            <input type="text" name="imap_user">
         </div>
-        <div class="form-group">
+        <div class="form-group credential-field">
             <label>IMAP Password</label>
             <input type="password" name="imap_password">
         </div>
         <h3>SMTP Settings</h3>
         <div class="form-group">
             <label>SMTP Host</label>
-            <input type="text" name="smtp_host">
+            <input type="text" name="smtp_host" value="smtp.office365.com">
         </div>
         <div class="form-group">
             <label>SMTP Port</label>
             <input type="number" name="smtp_port" value="587">
         </div>
-        <div class="form-group">
+        <div class="form-group credential-field">
             <label>SMTP Username</label>
-            <input type="text" name="smtp_username">
+            <input type="text" name="smtp_user">
         </div>
-        <div class="form-group">
+        <div class="form-group credential-field">
             <label>SMTP Password</label>
             <input type="password" name="smtp_password">
         </div>
         <button type="submit" class="btn btn-primary">Create Email Account</button>
     </form>
 </div>
+
+<script>
+(function() {
+    var sel = document.getElementById('auth-type-select');
+    var hint = document.getElementById('oauth2-hint');
+    var credFields = document.querySelectorAll('.credential-field');
+    function toggle() {
+        var isOauth = sel.value === 'oauth2';
+        hint.style.display = isOauth ? 'block' : 'none';
+        credFields.forEach(function(f) {
+            f.style.display = isOauth ? 'none' : '';
+        });
+    }
+    sel.addEventListener('change', toggle);
+    toggle();
+})();
+</script>
 {% endblock %}

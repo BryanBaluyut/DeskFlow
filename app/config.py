@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     SMTP_FROM_NAME: str = "IT Help Desk"
 
+    # Email auth: "basic" or "oauth2"
+    EMAIL_AUTH_TYPE: str = "basic"
+
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///data/deskflow.db"
 
