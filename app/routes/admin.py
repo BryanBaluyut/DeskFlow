@@ -527,7 +527,7 @@ async def branding_settings(request: Request, db: AsyncSession = Depends(get_db)
 @router.post("/branding")
 async def save_branding(
     request: Request,
-    product_name: str = Form("DeskFlow"),
+    product_name: str = Form("SlateDesk"),
     primary_color: str = Form("#2563eb"),
     custom_css: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),

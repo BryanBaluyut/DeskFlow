@@ -1,4 +1,4 @@
-"""REST API endpoints for DeskFlow - JSON API for integrations."""
+"""REST API endpoints for SlateDesk - JSON API for integrations."""
 import secrets
 from datetime import datetime, timezone
 

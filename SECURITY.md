@@ -2,9 +2,9 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in DeskFlow, please report it responsibly.
+If you discover a security vulnerability in SlateDesk, please report it responsibly.
 
-**Do not open a public issue.** Instead, email the maintainer directly or use [GitHub's private vulnerability reporting](https://github.com/BryanBaluyut/DeskFlow/security/advisories/new).
+**Do not open a public issue.** Instead, email the maintainer directly or use [GitHub's private vulnerability reporting](https://github.com/BryanBaluyut/SlateDesk/security/advisories/new).
 
 Please include:
 - Description of the vulnerability

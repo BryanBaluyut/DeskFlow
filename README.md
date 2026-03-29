@@ -1,4 +1,4 @@
-# DeskFlow - IT Help Desk Ticketing System
+# SlateDesk - IT Help Desk Ticketing System
 
 A comprehensive, Docker-deployable IT help desk ticketing system with enterprise-grade features, Microsoft Entra ID SSO, and email integration.
 
@@ -152,7 +152,7 @@ See `.env.example` for all configuration options.
 ## File Structure
 
 ```
-DeskFlow/
+SlateDesk/
 ├── docker-compose.yml          # Single-command deployment
 ├── Dockerfile                  # Python 3.12 slim container
 ├── .env.example                # All configuration documented

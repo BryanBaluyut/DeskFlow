@@ -14,8 +14,8 @@ log = logging.getLogger(__name__)
 
 def _make_message_id(ticket_id: int, article_id: int | None = None) -> str:
     if article_id:
-        return f"<ticket-{ticket_id}-article-{article_id}@deskflow>"
-    return f"<ticket-{ticket_id}@deskflow>"
+        return f"<ticket-{ticket_id}-article-{article_id}@slatedesk>"
+    return f"<ticket-{ticket_id}@slatedesk>"
 
 
 async def _send(
@@ -64,7 +64,7 @@ async def _send(
 
 async def send_ticket_notification(ticket: Ticket, creator: User):
     msg = EmailMessage()
-    msg["Subject"] = f"[DeskFlow #{ticket.number}] {ticket.subject}"
+    msg["Subject"] = f"[SlateDesk #{ticket.number}] {ticket.subject}"
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM}>"
     msg["To"] = creator.email
     msg["Message-ID"] = _make_message_id(ticket.id)
@@ -126,7 +126,7 @@ async def _send_customer_notification(
     if not await _check_email_preference(creator.id):
         return
     msg = EmailMessage()
-    msg["Subject"] = f"Re: [DeskFlow #{ticket.number}] {ticket.subject}"
+    msg["Subject"] = f"Re: [SlateDesk #{ticket.number}] {ticket.subject}"
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM}>"
     msg["To"] = creator.email
     msg["Message-ID"] = _make_message_id(ticket.id, article.id)
@@ -156,7 +156,7 @@ async def _send_agent_notification(
     if not await _check_email_preference(agent.id):
         return
     msg = EmailMessage()
-    msg["Subject"] = f"Re: [DeskFlow #{ticket.number}] {ticket.subject}"
+    msg["Subject"] = f"Re: [SlateDesk #{ticket.number}] {ticket.subject}"
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM}>"
     msg["To"] = agent.email
     msg["Message-ID"] = _make_message_id(ticket.id, article.id)

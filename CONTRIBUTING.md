@@ -1,4 +1,4 @@
-# Contributing to DeskFlow
+# Contributing to SlateDesk
 
 Thanks for your interest in contributing! Here's how to get started.
 
@@ -6,8 +6,8 @@ Thanks for your interest in contributing! Here's how to get started.
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/BryanBaluyut/DeskFlow.git
-   cd DeskFlow
+   git clone https://github.com/BryanBaluyut/SlateDesk.git
+   cd SlateDesk
    ```
 
 2. Copy the environment file:
@@ -60,7 +60,7 @@ chore: upgrade FastAPI to 0.110
 
 ## Reporting Bugs
 
-Use the [bug report template](https://github.com/BryanBaluyut/DeskFlow/issues/new?template=bug_report.yml) when filing issues.
+Use the [bug report template](https://github.com/BryanBaluyut/SlateDesk/issues/new?template=bug_report.yml) when filing issues.
 
 ## License
 

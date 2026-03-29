@@ -18,7 +18,7 @@ from app.services.email_outbound import send_comment_notification
 
 log = logging.getLogger(__name__)
 
-TICKET_RE = re.compile(r"\[DeskFlow #(\w+-\d+|\d+)\]")
+TICKET_RE = re.compile(r"\[(?:DeskFlow|SlateDesk) #(\w+-\d+|\d+)\]")
 
 
 async def _get_or_create_email_user(db: AsyncSession, from_addr: str, from_name: str) -> User:

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Branding - Admin - DeskFlow{% endblock %}
+{% block title %}Branding - Admin - SlateDesk{% endblock %}
 {% block content %}
 <h1>Branding</h1>
 
@@ -7,7 +7,7 @@
     <form method="post" action="/admin/branding">
         <div class="form-group">
             <label>Product Name</label>
-            <input type="text" name="product_name" value="{{ settings.product_name|default('DeskFlow') }}">
+            <input type="text" name="product_name" value="{{ settings.product_name|default('SlateDesk') }}">
         </div>
         <div class="form-group">
             <label>Primary Color</label>

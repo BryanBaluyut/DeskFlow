@@ -151,8 +151,8 @@ def test_make_message_id():
     """Message IDs follow expected format."""
     from app.services.email_outbound import _make_message_id
 
-    assert _make_message_id(42) == "<ticket-42@deskflow>"
-    assert _make_message_id(42, 7) == "<ticket-42-article-7@deskflow>"
+    assert _make_message_id(42) == "<ticket-42@slatedesk>"
+    assert _make_message_id(42, 7) == "<ticket-42-article-7@slatedesk>"
 
 
 def test_extract_body_strips_quoted_text():
@@ -186,7 +186,7 @@ async def test_send_comment_notification_routes_agent_to_customer():
     ticket.creator = MagicMock(id=10, email="customer@test.com")
     ticket.number = "20260328-0001"
     ticket.subject = "Test"
-    ticket.email_message_id = "<ticket-1@deskflow>"
+    ticket.email_message_id = "<ticket-1@slatedesk>"
     ticket.group_id = None
     ticket.assignee_id = 5
 

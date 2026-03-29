@@ -35,7 +35,7 @@ async def ical_feed(
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//DeskFlow//Tickets//EN",
+        "PRODID:-//SlateDesk//Tickets//EN",
         "CALSCALE:GREGORIAN",
     ]
 
@@ -46,7 +46,7 @@ async def ical_feed(
         dtstr = dt.strftime("%Y%m%dT%H%M%SZ")
         lines.extend([
             "BEGIN:VEVENT",
-            f"UID:ticket-{t.id}@deskflow",
+            f"UID:ticket-{t.id}@slatedesk",
             f"DTSTART:{dtstr}",
             f"DTEND:{dtstr}",
             f"SUMMARY:[#{t.number}] {t.subject}",

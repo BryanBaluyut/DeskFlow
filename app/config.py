@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     EMAIL_AUTH_TYPE: str = "basic"
 
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///data/deskflow.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///data/slatedesk.db"
 
     @property
     def entra_openid_url(self) -> str:

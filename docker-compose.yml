@@ -1,13 +1,13 @@
 services:
-  deskflow:
+  slatedesk:
     build: .
     ports:
       - "8000:8000"
     env_file:
       - .env
     volumes:
-      - deskflow-data:/data
+      - slatedesk-data:/data
     restart: unless-stopped
 
 volumes:
-  deskflow-data:
+  slatedesk-data:

@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         t.cancel()
 
 
-app = FastAPI(title="DeskFlow", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="SlateDesk", version="1.0.0", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 
