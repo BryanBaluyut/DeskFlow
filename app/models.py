@@ -170,7 +170,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    entra_oid = Column(String(255), unique=True, nullable=False, index=True)
+    entra_oid = Column(String(255), unique=True, nullable=True, index=True)
     email = Column(String(320), unique=True, nullable=False)
     display_name = Column(String(255), nullable=False)
     firstname = Column(String(255), default="")
@@ -203,7 +203,8 @@ class User(Base):
     api_token = Column(String(255), nullable=True, unique=True)
     api_token_last_used = Column(DateTime(timezone=True), nullable=True)
 
-    # Password (for local auth fallback)
+    # Authentication
+    auth_method = Column(String(20), default="local", nullable=False)
     password_hash = Column(String(255), nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=_utcnow)

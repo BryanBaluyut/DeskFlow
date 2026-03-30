@@ -4,6 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin, require_agent
+from app.auth.passwords import hash_password, validate_password
+from app.config import settings
 from app.database import get_db
 from app.models import (
     User, UserRole, Group, Organization, Tag, SLA, Calendar, Trigger, TriggerEvent,
@@ -26,6 +28,7 @@ async def admin_panel(request: Request, db: AsyncSession = Depends(get_db), user
     return request.app.state.templates.TemplateResponse("admin/index.html", {
         "request": request, "user": user, "users": users,
         "groups": groups, "organizations": orgs, "roles": list(UserRole),
+        "entra_configured": bool(settings.ENTRA_CLIENT_ID),
     })
 
 
@@ -64,6 +67,75 @@ async def deactivate_user(
     if target and target.id != user.id:
         target.active = not target.active
         await db.commit()
+    return RedirectResponse(url="/admin/", status_code=302)
+
+
+@router.post("/users")
+async def create_user(
+    request: Request,
+    display_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    role: str = Form("customer"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    pwd_errors = validate_password(password)
+    if pwd_errors:
+        raise HTTPException(400, detail="; ".join(pwd_errors))
+
+    existing = await db.execute(select(User).where(User.email == email.strip().lower()))
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, detail="A user with this email already exists.")
+
+    new_user = User(
+        display_name=display_name.strip(),
+        email=email.strip().lower(),
+        password_hash=hash_password(password),
+        auth_method="local",
+        role=UserRole(role),
+        active=True,
+    )
+    db.add(new_user)
+    await db.commit()
+    return RedirectResponse(url="/admin/", status_code=302)
+
+
+@router.post("/users/{user_id}/password")
+async def reset_password(
+    user_id: int,
+    new_password: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    pwd_errors = validate_password(new_password)
+    if pwd_errors:
+        raise HTTPException(400, detail="; ".join(pwd_errors))
+
+    target = await db.get(User, user_id)
+    if not target:
+        raise HTTPException(404)
+    target.password_hash = hash_password(new_password)
+    await db.commit()
+    return RedirectResponse(url="/admin/", status_code=302)
+
+
+@router.post("/users/{user_id}/auth-method")
+async def change_auth_method(
+    user_id: int,
+    auth_method: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    if auth_method not in ("local", "oauth"):
+        raise HTTPException(400, detail="Invalid auth method.")
+    target = await db.get(User, user_id)
+    if not target:
+        raise HTTPException(404)
+    if auth_method == "local" and not target.password_hash:
+        raise HTTPException(400, detail="Set a password before switching to local auth.")
+    target.auth_method = auth_method
+    await db.commit()
     return RedirectResponse(url="/admin/", status_code=302)
 
 

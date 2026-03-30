@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Setup - SlateDesk{% endblock %}
+{% block content %}
+<div class="login-card">
+    <h1>Welcome to SlateDesk</h1>
+    <p>Create your admin account to get started.</p>
+
+    {% if errors %}
+    <div class="alert alert-danger">
+        <ul>
+            {% for e in errors %}
+            <li>{{ e }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/setup">
+        <div class="form-group">
+            <label for="display_name">Display Name</label>
+            <input type="text" name="display_name" id="display_name" required value="{{ display_name|default('') }}">
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required placeholder="you@company.com" value="{{ email|default('') }}">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required minlength="8">
+        </div>
+        <div class="form-group">
+            <label for="password_confirm">Confirm Password</label>
+            <input type="password" name="password_confirm" id="password_confirm" required minlength="8">
+        </div>
+        <button type="submit" class="btn btn-primary btn-large">Create Admin Account</button>
+    </form>
+</div>
+{% endblock %}

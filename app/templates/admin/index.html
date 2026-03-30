@@ -29,6 +29,35 @@
 </div>
 
 <div class="card">
+    <h2>Create User</h2>
+    <form method="post" action="/admin/users" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; max-width: 600px;">
+        <div class="form-group">
+            <label for="new_display_name">Display Name</label>
+            <input type="text" name="display_name" id="new_display_name" required>
+        </div>
+        <div class="form-group">
+            <label for="new_email">Email</label>
+            <input type="email" name="email" id="new_email" required>
+        </div>
+        <div class="form-group">
+            <label for="new_password">Password</label>
+            <input type="password" name="password" id="new_password" required minlength="8">
+        </div>
+        <div class="form-group">
+            <label for="new_role">Role</label>
+            <select name="role" id="new_role">
+                {% for r in ['customer', 'agent', 'admin'] %}
+                <option value="{{ r }}">{{ r }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="grid-column: 1 / -1;">
+            <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
     <h2>Users</h2>
     <table class="ticket-table">
         <thead>
@@ -36,8 +65,10 @@
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Auth</th>
                 <th>VIP</th>
                 <th>Active</th>
+                <th>Password</th>
             </tr>
         </thead>
         <tbody>
@@ -55,13 +86,29 @@
                     </form>
                 </td>
                 <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/auth-method" class="inline-form">
+                        <select name="auth_method" onchange="this.form.submit()">
+                            <option value="local" {{ 'selected' if u.auth_method == 'local' }}>local</option>
+                            {% if entra_configured %}
+                            <option value="oauth" {{ 'selected' if u.auth_method == 'oauth' }}>oauth</option>
+                            {% endif %}
+                        </select>
+                    </form>
+                </td>
+                <td>
                     <form method="post" action="/admin/users/{{ u.id }}/vip" class="inline-form">
                         <button type="submit" class="btn btn-small">{{ 'Yes' if u.vip else 'No' }}</button>
                     </form>
                 </td>
                 <td>
-                    <form method="post" action="/admin/users/{{ u.id }}/active" class="inline-form">
+                    <form method="post" action="/admin/users/{{ u.id }}/deactivate" class="inline-form">
                         <button type="submit" class="btn btn-small">{{ 'Yes' if u.active else 'No' }}</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/admin/users/{{ u.id }}/password" class="inline-form" style="display: flex; gap: 0.25rem;">
+                        <input type="password" name="new_password" placeholder="New password" style="width: 120px; font-size: 0.8rem;" minlength="8">
+                        <button type="submit" class="btn btn-small">Set</button>
                     </form>
                 </td>
             </tr>

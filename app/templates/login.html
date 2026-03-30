@@ -1,9 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Login - SlateDesk{% endblock %}
+{% block title %}Sign In - SlateDesk{% endblock %}
 {% block content %}
 <div class="login-card">
     <h1>SlateDesk</h1>
     <p>IT Help Desk</p>
-    <a href="/auth/login" class="btn btn-primary btn-large">Sign in with Microsoft</a>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/auth/login">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required placeholder="you@company.com" value="{{ email|default('') }}">
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-large">Sign In</button>
+    </form>
+
+    {% if entra_configured %}
+    <div style="text-align: center; margin: 1.5rem 0; color: #888;">or</div>
+    <a href="/auth/login/entra" class="btn btn-secondary btn-large" style="display: block; text-align: center;">Sign in with Microsoft</a>
+    {% endif %}
+
+    <p style="margin-top: 1.5rem; text-align: center; color: #888; font-size: 0.875rem;">Can't sign in? Contact your system administrator.</p>
 </div>
 {% endblock %}
