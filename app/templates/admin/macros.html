@@ -26,15 +26,25 @@
 
 <div class="card">
     <h2>Add New Macro</h2>
-    <form method="post" action="/admin/macros">
+    <form method="post" action="/admin/macros" id="macro-form">
         <div class="form-group">
             <label>Name</label>
             <input type="text" name="name" required>
         </div>
-        <div class="form-group">
-            <label>Actions (JSON)</label>
-            <textarea name="actions" rows="4" placeholder='[{"action": "set", "field": "priority", "value": "high"}]'></textarea>
+        <div id="macro-actions">
+            <label>Actions</label>
+            <div class="macro-action-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+                <select class="macro-field">
+                    <option value="status">Set Status</option>
+                    <option value="priority">Set Priority</option>
+                    <option value="assignee_id">Set Assignee ID</option>
+                    <option value="group_id">Set Group ID</option>
+                </select>
+                <input type="text" class="macro-value" placeholder="Value (e.g. high, open, 1)">
+            </div>
         </div>
+        <button type="button" onclick="addMacroRow()" class="btn btn-small" style="margin-bottom:0.75rem;">+ Add Action</button>
+        <input type="hidden" name="actions" id="macro-actions-json">
         <div class="form-group">
             <label>Note</label>
             <textarea name="note" rows="2"></textarea>
@@ -42,4 +52,35 @@
         <button type="submit" class="btn btn-primary">Create Macro</button>
     </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+function addMacroRow() {
+    const container = document.getElementById('macro-actions');
+    const row = document.createElement('div');
+    row.className = 'macro-action-row';
+    row.style = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;';
+    row.innerHTML = `
+        <select class="macro-field">
+            <option value="status">Set Status</option>
+            <option value="priority">Set Priority</option>
+            <option value="assignee_id">Set Assignee ID</option>
+            <option value="group_id">Set Group ID</option>
+        </select>
+        <input type="text" class="macro-value" placeholder="Value">
+        <button type="button" onclick="this.parentElement.remove()" class="btn btn-small">Remove</button>
+    `;
+    container.appendChild(row);
+}
+document.getElementById('macro-form').addEventListener('submit', function() {
+    const rows = document.querySelectorAll('.macro-action-row');
+    const actions = [];
+    rows.forEach(row => {
+        const field = row.querySelector('.macro-field').value;
+        const value = row.querySelector('.macro-value').value;
+        if (value) actions.push({field: field, value: value});
+    });
+    document.getElementById('macro-actions-json').value = JSON.stringify(actions);
+});
+</script>
 {% endblock %}

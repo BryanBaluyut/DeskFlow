@@ -600,5 +600,14 @@ async def mark_notifications_read(
     return RedirectResponse(url="/notifications", status_code=302)
 
 
+# Text modules endpoint (session-auth, for ::keyword expansion in ticket replies)
+from app.models import TextModule
+
+@router.get("/text-modules.json")
+async def text_modules_json(db: AsyncSession = Depends(get_db), user: User = Depends(require_agent)):
+    modules = (await db.execute(select(TextModule).where(TextModule.active == True))).scalars().all()
+    return {"data": [{"id": m.id, "name": m.name, "keyword": m.keyword, "content": m.content} for m in modules]}
+
+
 # Import TicketTemplate and TicketHistory for type hints
 from app.models import TicketTemplate, TicketHistory

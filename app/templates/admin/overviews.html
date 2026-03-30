@@ -27,39 +27,99 @@
 
 <div class="card">
     <h2>Add New Overview</h2>
-    <form method="post" action="/admin/overviews">
+    <form method="post" action="/admin/overviews" id="overview-form">
         <div class="form-group">
             <label>Name</label>
             <input type="text" name="name" required>
         </div>
         <div class="form-group">
             <label>Link (slug)</label>
-            <input type="text" name="link" required>
+            <input type="text" name="link" placeholder="e.g. my-open-tickets">
         </div>
         <div class="form-group">
-            <label>Conditions (JSON)</label>
-            <textarea name="conditions" rows="3" placeholder='{"state": "open"}'></textarea>
+            <label>Filter by Status</label>
+            <select id="ov-status">
+                <option value="">(Any)</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="pending_reminder">Pending Reminder</option>
+                <option value="pending_close">Pending Close</option>
+                <option value="waiting">Waiting</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+            </select>
         </div>
+        <div class="form-group">
+            <label>Filter by Priority</label>
+            <select id="ov-priority">
+                <option value="">(Any)</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+        </div>
+        <input type="hidden" name="conditions" id="ov-conditions">
         <div class="form-group">
             <label>Order By</label>
-            <input type="text" name="order_by" placeholder="e.g. created_at">
+            <select name="order_by">
+                <option value="created_at">Created At</option>
+                <option value="updated_at">Updated At</option>
+                <option value="priority">Priority</option>
+                <option value="status">Status</option>
+            </select>
         </div>
         <div class="form-group">
             <label>Order Direction</label>
             <select name="order_direction">
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Columns (JSON array)</label>
-            <textarea name="columns" rows="2" placeholder='["number", "title", "state", "priority"]'></textarea>
+            <label>Visible Columns</label>
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+                {% for col in ['number', 'subject', 'status', 'priority', 'assignee', 'group', 'created_at', 'updated_at'] %}
+                <label style="font-weight:normal;font-size:0.85rem;">
+                    <input type="checkbox" class="ov-col" value="{{ col }}" {{ 'checked' if col in ['number', 'subject', 'status', 'priority', 'assignee', 'updated_at'] }}> {{ col|replace('_', ' ')|capitalize }}
+                </label>
+                {% endfor %}
+            </div>
         </div>
+        <input type="hidden" name="columns" id="ov-columns">
         <div class="form-group">
-            <label>Roles (JSON array)</label>
-            <textarea name="roles" rows="2" placeholder='["admin", "agent"]'></textarea>
+            <label>Visible to Roles</label>
+            <div style="display:flex;gap:0.75rem;">
+                {% for r in ['admin', 'agent', 'customer'] %}
+                <label style="font-weight:normal;font-size:0.85rem;">
+                    <input type="checkbox" class="ov-role" value="{{ r }}" {{ 'checked' if r != 'customer' }}> {{ r|capitalize }}
+                </label>
+                {% endfor %}
+            </div>
         </div>
+        <input type="hidden" name="roles" id="ov-roles">
         <button type="submit" class="btn btn-primary">Create Overview</button>
     </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('overview-form').addEventListener('submit', function() {
+    // Build conditions JSON
+    const conditions = {};
+    const status = document.getElementById('ov-status').value;
+    const priority = document.getElementById('ov-priority').value;
+    if (status) conditions.status = status;
+    if (priority) conditions.priority = priority;
+    document.getElementById('ov-conditions').value = JSON.stringify(conditions);
+
+    // Build columns JSON
+    const cols = Array.from(document.querySelectorAll('.ov-col:checked')).map(cb => cb.value);
+    document.getElementById('ov-columns').value = JSON.stringify(cols);
+
+    // Build roles JSON
+    const roles = Array.from(document.querySelectorAll('.ov-role:checked')).map(cb => cb.value);
+    document.getElementById('ov-roles').value = JSON.stringify(roles);
+});
+</script>
 {% endblock %}

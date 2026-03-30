@@ -80,20 +80,21 @@ async def callback(request: Request, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user and email:
-        result = await db.execute(select(User).where(User.email == email.lower()))
+        email_lower = email.strip().lower()
+        result = await db.execute(select(User).where(User.email == email_lower))
         user = result.scalar_one_or_none()
 
     if user:
-        user.entra_oid = oid
-        user.email = email
+        # Link OID and update display name, but preserve role and email
+        if not user.entra_oid:
+            user.entra_oid = oid
         user.display_name = name
-        # Preserve existing role — never downgrade on SSO login
     else:
         count_result = await db.execute(select(User.id).limit(1))
         is_first = count_result.first() is None
         user = User(
             entra_oid=oid,
-            email=email,
+            email=email.strip().lower(),
             display_name=name,
             auth_method="oauth",
             role=UserRole.admin if is_first else UserRole.customer,

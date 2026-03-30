@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const keyword = match[1];
                 try {
-                    const resp = await fetch('/api/v1/text-modules');
+                    const resp = await fetch('/text-modules.json');
                     if (resp.ok) {
                         const data = await resp.json();
                         const module = data.data.find(m => m.keyword === keyword);
