@@ -4,7 +4,7 @@
 <p><a href="/portal/tickets">&larr; Back to My Tickets</a></p>
 <div class="card">
     <h1>{{ ticket.subject }}</h1>
-    <p><span class="badge">{{ ticket.status }}</span> | Ticket #{{ ticket.number }}</p>
+    <p><span class="badge">{{ ticket.status.value|replace('_', ' ')|capitalize }}</span> | {{ ticket.priority.value|capitalize if ticket.priority else '' }} | Ticket #{{ ticket.number }}</p>
     <hr>
     <div class="article-body">{{ ticket.body_html|safe if ticket.body_html else '' }}</div>
 </div>

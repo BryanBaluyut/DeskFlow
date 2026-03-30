@@ -7,7 +7,7 @@
     {% for label, count in status_counts.items() %}
     <div class="stat-card">
         <div class="stat-value">{{ count }}</div>
-        <div class="stat-label">{{ label|capitalize }}</div>
+        <div class="stat-label">{{ label|replace('_', ' ')|capitalize }}</div>
     </div>
     {% endfor %}
 </div>
@@ -17,7 +17,7 @@
     {% for label, count in priority_counts.items() %}
     <div class="stat-card">
         <div class="stat-value">{{ count }}</div>
-        <div class="stat-label">{{ label|capitalize }}</div>
+        <div class="stat-label">{{ label|replace('_', ' ')|capitalize }}</div>
     </div>
     {% endfor %}
 </div>

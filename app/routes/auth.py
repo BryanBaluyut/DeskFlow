@@ -75,12 +75,19 @@ async def callback(request: Request, db: AsyncSession = Depends(get_db)):
     email = userinfo.get("email") or userinfo.get("preferred_username", "")
     name = userinfo.get("name", email)
 
+    # Look up by OID first, then fall back to email match
     result = await db.execute(select(User).where(User.entra_oid == oid))
     user = result.scalar_one_or_none()
 
+    if not user and email:
+        result = await db.execute(select(User).where(User.email == email.lower()))
+        user = result.scalar_one_or_none()
+
     if user:
+        user.entra_oid = oid
         user.email = email
         user.display_name = name
+        # Preserve existing role — never downgrade on SSO login
     else:
         count_result = await db.execute(select(User.id).limit(1))
         is_first = count_result.first() is None

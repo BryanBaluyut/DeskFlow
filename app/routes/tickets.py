@@ -92,6 +92,9 @@ async def ticket_list(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if user.role == UserRole.customer:
+        return RedirectResponse(url="/portal/tickets", status_code=302)
+
     templates = request.app.state.templates
     q = select(Ticket).options(
         selectinload(Ticket.creator), selectinload(Ticket.assignee),
@@ -99,9 +102,6 @@ async def ticket_list(
     )
 
     group_id_int = int(group_id) if group_id and group_id.isdigit() else None
-
-    if user.role == UserRole.customer:
-        q = q.where(Ticket.creator_id == user.id)
     if status:
         q = q.where(Ticket.status == status)
     if priority:
@@ -141,7 +141,6 @@ async def ticket_create_form(request: Request, db: AsyncSession = Depends(get_db
         select(TicketTemplate).where(TicketTemplate.active == True)
     )).scalars().all() if user.role != UserRole.customer else []
 
-    from app.models import TicketTemplate
     return request.app.state.templates.TemplateResponse("ticket_create.html", {
         "request": request, "user": user, "priorities": list(TicketPriority),
         "groups": groups, "ticket_templates": templates_list,
@@ -235,7 +234,6 @@ async def ticket_detail(
     if user.role == UserRole.customer and ticket.creator_id != user.id:
         raise HTTPException(403)
 
-    from app.models import TicketHistory
     articles = [a for a in ticket.articles if not a.is_internal or user.role != UserRole.customer]
 
     agents = []

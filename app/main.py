@@ -33,12 +33,27 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
+def _run_alembic_upgrade():
+    """Run Alembic migrations to bring existing databases up to date."""
+    try:
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        log.info("Alembic migrations applied")
+    except Exception as e:
+        log.warning("Alembic migration skipped: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables
+    # Create tables (for fresh databases)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     log.info("Database tables created")
+
+    # Apply migrations (for existing databases with missing columns)
+    await asyncio.get_event_loop().run_in_executor(None, _run_alembic_upgrade)
 
     # Start background tasks
     tasks = [

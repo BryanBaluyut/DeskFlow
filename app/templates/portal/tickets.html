@@ -7,8 +7,8 @@
         <label for="status">Status:</label>
         <select id="status" name="status" onchange="this.form.submit()">
             <option value="">All</option>
-            {% for s in ['open', 'pending', 'closed'] %}
-            <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|capitalize }}</option>
+            {% for s in statuses %}
+            <option value="{{ s.value }}" {% if filter_status == s.value %}selected{% endif %}>{{ s.value|replace('_', ' ')|capitalize }}</option>
             {% endfor %}
         </select>
     </form>
@@ -22,9 +22,9 @@
             {% for ticket in tickets %}
             <tr>
                 <td>{{ ticket.number }}</td>
-                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.title }}</a></td>
-                <td><span class="badge">{{ ticket.status }}</span></td>
-                <td>{{ ticket.priority|default('-') }}</td>
+                <td><a href="/portal/tickets/{{ ticket.id }}">{{ ticket.subject }}</a></td>
+                <td><span class="badge">{{ ticket.status.value|replace('_', ' ')|capitalize }}</span></td>
+                <td>{{ ticket.priority.value|capitalize if ticket.priority else '-' }}</td>
                 <td>{{ ticket.updated_at.strftime('%Y-%m-%d') if ticket.updated_at else '' }}</td>
             </tr>
             {% else %}

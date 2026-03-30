@@ -116,6 +116,7 @@ async def reset_password(
     if not target:
         raise HTTPException(404)
     target.password_hash = hash_password(new_password)
+    target.auth_method = "local"
     await db.commit()
     return RedirectResponse(url="/admin/", status_code=302)
 
