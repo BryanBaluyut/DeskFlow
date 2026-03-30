@@ -70,6 +70,7 @@ class TicketCreate(BaseModel):
     subject: str
     body: str = ""
     priority: str = "medium"
+    status: str | None = None
     group_id: int | None = None
     tags: list[str] = []
     custom_fields: dict = {}
@@ -134,7 +135,9 @@ async def create_ticket(
     number = await generate_ticket_number(db)
     ticket = Ticket(
         number=number, subject=payload.subject, body_html=payload.body,
-        priority=TicketPriority(payload.priority), creator_id=user.id,
+        priority=TicketPriority(payload.priority),
+        status=TicketStatus(payload.status) if payload.status else TicketStatus.open,
+        creator_id=user.id,
         group_id=payload.group_id, channel=TicketChannel.api,
         custom_fields=payload.custom_fields,
     )

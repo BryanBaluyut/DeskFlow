@@ -3,8 +3,9 @@ import logging
 import pathlib
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import select
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -51,7 +52,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SlateDesk", version="1.0.0", lifespan=lifespan)
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    https_only=settings.APP_URL.startswith("https"),
+    same_site="lax",
+    max_age=86400,
+)
 
 # Track whether initial setup has been completed
 app.state.setup_complete = None
@@ -77,6 +84,17 @@ async def setup_guard(request: Request, call_next):
 @app.exception_handler(RedirectToLogin)
 async def redirect_to_login(request: Request, exc: RedirectToLogin):
     return RedirectResponse(url="/auth/login")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return app.state.templates.TemplateResponse("error.html", {
+        "request": request,
+        "status_code": exc.status_code,
+        "detail": exc.detail or "Page not found",
+    }, status_code=exc.status_code)
 
 
 # Templates

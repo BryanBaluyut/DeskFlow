@@ -109,10 +109,10 @@ async def kb_manage(request: Request, db: AsyncSession = Depends(get_db), user: 
 
 @router.post("/categories")
 async def create_category(
-    name: str = Form(...), parent_id: int | None = Form(None),
+    name: str = Form(...), parent_id: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_agent),
 ):
-    cat = KBCategory(name=name, parent_id=parent_id)
+    cat = KBCategory(name=name, parent_id=int(parent_id) if parent_id else None)
     db.add(cat)
     await db.commit()
     return RedirectResponse(url="/knowledge-base/manage", status_code=302)

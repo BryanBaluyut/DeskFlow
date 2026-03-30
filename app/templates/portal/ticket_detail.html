@@ -3,18 +3,18 @@
 {% block content %}
 <p><a href="/portal/tickets">&larr; Back to My Tickets</a></p>
 <div class="card">
-    <h1>{{ ticket.title }}</h1>
+    <h1>{{ ticket.subject }}</h1>
     <p><span class="badge">{{ ticket.status }}</span> | Ticket #{{ ticket.number }}</p>
     <hr>
-    <div class="article-body">{{ ticket.body|safe if ticket.body else '' }}</div>
+    <div class="article-body">{{ ticket.body_html|safe if ticket.body_html else '' }}</div>
 </div>
 
 <h2>Replies</h2>
-{% for reply in replies %}
+{% for reply in articles %}
 <div class="card">
     <strong>{{ reply.author.display_name if reply.author else 'Support' }}</strong>
     <span style="color:#888;font-size:0.875rem;margin-left:0.5rem;">{{ reply.created_at.strftime('%Y-%m-%d %H:%M') if reply.created_at else '' }}</span>
-    <div style="margin-top:0.5rem;">{{ reply.body|safe }}</div>
+    <div style="margin-top:0.5rem;">{{ reply.body_html|safe }}</div>
 </div>
 {% else %}
 <div class="card"><p>No replies yet.</p></div>

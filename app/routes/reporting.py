@@ -53,13 +53,13 @@ async def reports_dashboard(request: Request, db: AsyncSession = Depends(get_db)
         priority_counts[p.value] = count
 
     # Tickets by group
-    group_counts = []
+    group_counts = {}
     groups = (await db.execute(select(Group))).scalars().all()
     for g in groups:
         count = (await db.execute(
             select(func.count(Ticket.id)).where(Ticket.group_id == g.id)
         )).scalar()
-        group_counts.append({"name": g.display_name, "count": count})
+        group_counts[g.display_name] = count
 
     # Top agents by tickets closed
     agent_stats = []

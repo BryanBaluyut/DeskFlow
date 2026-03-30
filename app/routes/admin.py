@@ -152,14 +152,14 @@ async def groups_list(request: Request, db: AsyncSession = Depends(get_db), user
 @router.post("/groups")
 async def create_group(
     name: str = Form(...), display_name: str = Form(""),
-    email_address: str = Form(""), signature_id: int | None = Form(None),
+    email_address: str = Form(""), signature_id: str = Form(""),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
     group = Group(
         name=name.strip().lower().replace(" ", "_"),
         display_name=display_name.strip() or name.strip(),
         email_address=email_address.strip() or None,
-        signature_id=signature_id,
+        signature_id=int(signature_id) if signature_id else None,
     )
     db.add(group)
     await db.commit()
@@ -561,13 +561,14 @@ async def web_forms_list(request: Request, db: AsyncSession = Depends(get_db), u
 
 @router.post("/web-forms")
 async def create_web_form(
+    request: Request,
     name: str = Form(...), title: str = Form("Contact Us"),
-    group_id: int | None = Form(None),
+    group_id: str = Form(""),
     success_message: str = Form("Thank you! Your request has been submitted."),
     db: AsyncSession = Depends(get_db), user: User = Depends(require_admin),
 ):
     form = WebForm(
-        name=name, title=title, group_id=group_id,
+        name=name, title=title, group_id=int(group_id) if group_id else None,
         success_message=success_message,
         fields=[
             {"name": "name", "label": "Name", "type": "text", "required": True},

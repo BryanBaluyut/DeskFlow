@@ -84,7 +84,7 @@ async def ticket_list(
     request: Request,
     status: str | None = None,
     assignee: str | None = None,
-    group_id: int | None = None,
+    group_id: str | None = None,
     priority: str | None = None,
     tag: str | None = None,
     search: str | None = None,
@@ -98,6 +98,8 @@ async def ticket_list(
         selectinload(Ticket.group), selectinload(Ticket.tags),
     )
 
+    group_id_int = int(group_id) if group_id and group_id.isdigit() else None
+
     if user.role == UserRole.customer:
         q = q.where(Ticket.creator_id == user.id)
     if status:
@@ -108,8 +110,8 @@ async def ticket_list(
         q = q.where(Ticket.assignee_id == user.id)
     elif assignee == "unassigned":
         q = q.where(Ticket.assignee_id.is_(None))
-    if group_id:
-        q = q.where(Ticket.group_id == group_id)
+    if group_id_int:
+        q = q.where(Ticket.group_id == group_id_int)
     if tag:
         q = q.join(Ticket.tags).where(Tag.name == tag)
     if search:
@@ -125,7 +127,7 @@ async def ticket_list(
     return templates.TemplateResponse("ticket_list.html", {
         "request": request, "user": user, "tickets": tickets,
         "filter_status": status, "filter_assignee": assignee,
-        "filter_group_id": group_id, "filter_priority": priority,
+        "filter_group_id": group_id_int, "filter_priority": priority,
         "filter_tag": tag, "search": search, "page": page,
         "groups": groups, "all_tags": all_tags,
         "statuses": list(TicketStatus), "priorities": list(TicketPriority),
@@ -133,7 +135,7 @@ async def ticket_list(
 
 
 @router.get("/tickets/new", response_class=HTMLResponse)
-async def ticket_create_form(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+async def ticket_create_form(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_agent)):
     groups = (await db.execute(select(Group).where(Group.active == True))).scalars().all()
     templates_list = (await db.execute(
         select(TicketTemplate).where(TicketTemplate.active == True)
@@ -205,6 +207,8 @@ async def ticket_create(
     await notify_mentions(db, ticket.id, body, user.id)
     await db.commit()
 
+    if user.role == UserRole.customer:
+        return RedirectResponse(url=f"/portal/tickets/{ticket.id}", status_code=302)
     return RedirectResponse(url=f"/tickets/{ticket.id}", status_code=302)
 
 
@@ -514,14 +518,19 @@ async def apply_macro(
     for action in macro.actions or []:
         field = action.get("field")
         value = action.get("value")
-        if field == "status":
-            ticket.status = TicketStatus(value)
-        elif field == "priority":
-            ticket.priority = TicketPriority(value)
-        elif field == "assignee_id":
-            ticket.assignee_id = int(value) if value else None
-        elif field == "group_id":
-            ticket.group_id = int(value) if value else None
+        if not value and field in ("status", "priority"):
+            continue
+        try:
+            if field == "status":
+                ticket.status = TicketStatus(value)
+            elif field == "priority":
+                ticket.priority = TicketPriority(value)
+            elif field == "assignee_id":
+                ticket.assignee_id = int(value) if value else None
+            elif field == "group_id":
+                ticket.group_id = int(value) if value else None
+        except (ValueError, KeyError):
+            continue
 
     await record_history(db, ticket_id, user.id, "macro_applied", "macro", None, macro.name)
     await db.commit()
